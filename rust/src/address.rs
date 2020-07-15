@@ -1,0 +1,70 @@
+use std::fmt::Display;
+use std::fmt::{self, Debug};
+
+#[derive(Eq, PartialEq, Hash, Clone)]
+pub struct Address {
+    pub name: String,
+    pub device_id: u64,
+}
+
+impl Address {
+    pub fn new(name: String, device_id: u64) -> Address {
+        Address { name, device_id }
+    }
+}
+
+impl Debug for Address {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(
+            f,
+            "(name: {:?}, device_id: {:?})",
+            self.name, self.device_id
+        )
+    }
+}
+
+impl Display for Address {
+    fn fmt(&self, f: &'_ mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "(name: {:?}, device_id: {:?})",
+            self.name, self.device_id
+        )
+    }
+}
+
+#[derive(Eq, PartialEq, Hash, Clone)]
+pub struct SenderKeyName {
+    pub group_id: String,
+    pub sender: Address,
+}
+
+impl Debug for SenderKeyName {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(
+            f,
+            "(group_id: {:?}, sender: {:?})",
+            self.group_id, self.sender
+        )
+    }
+}
+
+impl Display for SenderKeyName {
+    fn fmt(&self, f: &'_ mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "(group_id: {:?}, sender: {:?})",
+            self.group_id, self.sender
+        )
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    #[test]
+    fn new_address() {
+        let address = Address::new("test".to_string(), 123);
+        println!("address: {:?}", address)
+    }
+}

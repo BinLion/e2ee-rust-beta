@@ -1,0 +1,19 @@
+[package]
+name = "capi"
+version = "0.1.0"
+authors = ["Bean"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+crate-type = ["staticlib"]
+
+[dependencies]
+libc = "0.2"
+curve-crypto = { path = "../curve-crypto" }
+rust = { path = "../rust" }
+rand_core = { version = "0.5", default-features = false }
+anyhow = { version = "1.0", default-features = false}
+log = "0.4"
+simplelog = "0.8"
