@@ -311,11 +311,12 @@ impl<'a> GroupSessionBuilder<'a> {
                 return Ok(message_keys);
             } else {
                 debug!("received message with old counter");
-                return Err(MyError::SessionError {
-                    code: 2010,
-                    name: "get_message_keys".to_string(),
-                    msg: "receive message with old counter".to_string(),
-                });
+                // return Err(MyError::SessionError {
+                //     code: 2010,
+                //     name: "DuplicateMessageException".to_string(),
+                //     msg: "receive message with old counter".to_string(),
+                // });
+                return Err(MyError::DuplicateMessageException);
             }
         }
 
@@ -522,11 +523,12 @@ impl<'a> SessionBuilder<'a> {
             .load_signed_pre_key(message.signed_key_id);
         if our_signed_key_opt.is_none() {
             trace!("process_with_message. load signed pre key is none");
-            return Err(MyError::SessionError {
-                code: 2031,
-                name: "process with message".to_string(),
-                msg: "load signed pre key is none".to_string(),
-            });
+            return Err(MyError::NoSignedKeyException);
+            // return Err(MyError::SessionError {
+            //     code: 2031,
+            //     name: "process with message".to_string(),
+            //     msg: "load signed pre key is none".to_string(),
+            // });
         }
 
         let our_signed_key = our_signed_key_opt.unwrap().keypair;
@@ -542,11 +544,12 @@ impl<'a> SessionBuilder<'a> {
             let pre_key_opt = self.pre_key_store.load_pre_key(id);
             if pre_key_opt.is_none() {
                 trace!("process_with_message. load pre key is none");
-                return Err(MyError::SessionError {
-                    code: 2032,
-                    name: "process with message".to_string(),
-                    msg: "load pre key is none".to_string(),
-                });
+                // return Err(MyError::SessionError {
+                //     code: 2032,
+                //     name: "process with message".to_string(),
+                //     msg: "load pre key is none".to_string(),
+                // });
+                return Err(MyError::NoPreKeyException);
             }
             parameters.our_one_time_key = Some(pre_key_opt.expect("process_with_message1").keypair);
         }
@@ -970,11 +973,12 @@ impl<'a> SessionBuilder<'a> {
                     "Received message with old counter. index:{}, counter:{}",
                     chain_key.index, counter
                 );
-                return Err(MyError::SessionError {
-                    code: 2070,
-                    name: "get message keys".to_string(),
-                    msg: "receive message with old counter".to_string(),
-                });
+                // return Err(MyError::SessionError {
+                //     code: 2070,
+                //     name: "DuplicateMessageException".to_string(),
+                //     msg: "receive message with old counter".to_string(),
+                // });
+                return Err(MyError::DuplicateMessageException);
             }
         }
 

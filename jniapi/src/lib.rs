@@ -484,9 +484,17 @@ pub extern "system" fn Java_ai_totok_e2ee_RustKeyHelper_processWithKeyBundle(
         result
     );
     if let Err(e) = result {
-        let f = format!("process_with_key_bundle fail: {:?}", e);
-        error!("{}", f);
-        let _ = env.throw(f);
+        // let f = format!("process_with_key_bundle fail: {:?}", e);
+        // error!("{}", f);
+        // let _ = env.throw(f);
+        match e {
+            rust::errors::MyError::NoSignedKeyException => {
+                let _ = env.throw_new("ai/totok/e2ee/NoSignedKeyException", "no signed key");
+            }
+            _ => {
+                let _ = env.throw(format!("process_with_key_bundle error: {:?}", e));
+            }
+        }
         return;
     }
 
@@ -617,11 +625,8 @@ pub extern "system" fn Java_ai_totok_e2ee_RustKeyHelper_cipherDecrypt(
                     "cipherDecrypt 7. PreKeySignalMessage::deserialize error: {:?}",
                     e
                 );
-                let result = env.throw(format!("PreKeySignalMessage decode error: {:?}", e));
-                trace!(
-                    "cipherDecrypt 8. PreKeySignalMessage::deserialize throw error: {:?}",
-                    result
-                );
+
+                let _ = env.throw(format!("PreKeySignalMessage decrypt error: {:?}", e));
                 return cipher_text;
             }
             Ok(message) => {
@@ -634,12 +639,32 @@ pub extern "system" fn Java_ai_totok_e2ee_RustKeyHelper_cipherDecrypt(
                 match result {
                     Err(e) => {
                         trace!("cipherDecrypt 11. pre_key_message_decrypt error: {:?}", e);
-                        let result =
-                            env.throw(format!("PreKeySignalMessage decrypt error: {:?}", e));
-                        trace!(
-                            "cipherDecrypt 11. pre_key_message_decrypt throw error: {:?}",
-                            result
-                        );
+                        match e {
+                            rust::errors::MyError::DuplicateMessageException => {
+                                let _ = env.throw_new(
+                                    "ai/totok/e2ee/DuplicateMessageException",
+                                    "receive message with old counter",
+                                );
+                            }
+                            rust::errors::MyError::NoPreKeyException => {
+                                let _ = env.throw_new(
+                                    "ai/totok/e2ee/NoPreKeyException",
+                                    "no pre key found",
+                                );
+                            }
+                            rust::errors::MyError::NoSignedKeyException => {
+                                let _ = env.throw_new(
+                                    "ai/totok/e2ee/NoSignedKeyException",
+                                    "no signed key found",
+                                );
+                            }
+                            _ => {
+                                let _ = env
+                                    .throw(format!("PreKeySignalMessage decrypt error: {:?}", e));
+                            }
+                        }
+                        // let result =
+                        //     env.throw(format!("PreKeySignalMessage decrypt error: {:?}", e));
                         return cipher_text;
                     }
                     Ok(text) => {
@@ -662,11 +687,8 @@ pub extern "system" fn Java_ai_totok_e2ee_RustKeyHelper_cipherDecrypt(
         match signal_message {
             Err(e) => {
                 trace!("cipherDecrypt 15 SignalMessage decode error!: {:?}", e);
-                let result = env.throw(format!("SignalMessage decode error: {:?}", e));
-                trace!(
-                    "cipherDecrypt 16 SignalMessage decode throw error!: {:?}",
-                    result
-                );
+
+                let _ = env.throw(format!("SignalMessage decrypt error: {:?}", e));
                 return cipher_text;
             }
             Ok(message) => {
@@ -679,11 +701,17 @@ pub extern "system" fn Java_ai_totok_e2ee_RustKeyHelper_cipherDecrypt(
                 match result {
                     Err(e) => {
                         trace!("cipherDecrypt 19. SignalMessage decode error: {:?}", e);
-                        let result = env.throw(format!("SignalMessage decode error: {:?}", e));
-                        trace!(
-                            "cipherDecrypt 20. SignalMessage decode  throw error: {:?}",
-                            result
-                        );
+                        match e {
+                            rust::errors::MyError::DuplicateMessageException => {
+                                let _ = env.throw_new(
+                                    "ai/totok/e2ee/DuplicateMessageException",
+                                    "receive message with old counter",
+                                );
+                            }
+                            _ => {
+                                let _ = env.throw(format!("SignalMessage decrypt error: {:?}", e));
+                            }
+                        }
                         return cipher_text;
                     }
                     Ok(text) => {

@@ -25,4 +25,13 @@ pub enum MyError {
         name: String,
         msg: String,
     },
+
+    #[error("DuplicateMessageException")]
+    DuplicateMessageException,
+
+    #[error("NoSignedKeyException")]
+    NoSignedKeyException,
+
+    #[error("NoPreKeyException")]
+    NoPreKeyException,
 }
