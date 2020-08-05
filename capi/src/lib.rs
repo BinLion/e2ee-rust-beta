@@ -771,25 +771,54 @@ pub unsafe extern "C" fn session_cipher_encrypt(
     //    let v = &[0u8, 10];
     debug!("session_cipher_encrypt. text: {:?}", text);
     let encrypted_ret = session.encrypt(text);
-    if encrypted_ret.is_err() {
-        return -1 as c_int;
+    match encrypted_ret {
+        Err(e) => match e {
+            rust::errors::MyError::SessionError { code, name, msg } => {
+                debug!(
+                    "session_cipher_encrypt fail. code:{}, name:{}, msg: {}",
+                    code, name, msg
+                );
+                return code as c_int;
+            }
+            rust::errors::MyError::NoPreKeyException => -2 as c_int,
+            rust::errors::MyError::NoSignedKeyException => -3 as c_int,
+            _ => -1 as c_int,
+        },
+        Ok(encrypted) => {
+            let vec = encrypted.serialize();
+            debug!("session_cipher_encrypt. encrypted: {:?}", vec);
+            let length = vec.len() as u32;
+            let result = CString::from_vec_unchecked(vec);
+            let message_type = encrypted.get_type() as u32;
+            let out = MessageBuf {
+                data: result.into_raw(),
+                length,
+                message_type,
+            };
+
+            let _ = encrypted_message.replace(Box::into_raw(Box::new(out)));
+            0 as c_int
+        }
     }
-    let encrypted = encrypted_ret.unwrap();
-    let vec = encrypted.serialize();
-    debug!("session_cipher_encrypt. encrypted: {:?}", vec);
-    let length = vec.len() as u32;
-    let result = CString::from_vec_unchecked(vec);
-    let message_type = encrypted.get_type() as u32;
+    // if encrypted_ret.is_err() {
+    //     return -1 as c_int;
+    // }
+    // let encrypted = encrypted_ret.unwrap();
+    // let vec = encrypted.serialize();
+    // debug!("session_cipher_encrypt. encrypted: {:?}", vec);
+    // let length = vec.len() as u32;
+    // let result = CString::from_vec_unchecked(vec);
+    // let message_type = encrypted.get_type() as u32;
 
-    let out = MessageBuf {
-        data: result.into_raw(),
-        length,
-        message_type,
-    };
+    // let out = MessageBuf {
+    //     data: result.into_raw(),
+    //     length,
+    //     message_type,
+    // };
 
-    let _ = encrypted_message.replace(Box::into_raw(Box::new(out)));
+    // let _ = encrypted_message.replace(Box::into_raw(Box::new(out)));
 
-    0 as c_int
+    // 0 as c_int
 }
 
 #[no_mangle]

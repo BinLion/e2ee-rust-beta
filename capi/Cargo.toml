@@ -1,5 +1,5 @@
 [package]
-name = "capi"
+name = "e2ee"
 version = "0.1.0"
 authors = ["Bean"]
 edition = "2018"
