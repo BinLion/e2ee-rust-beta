@@ -26,7 +26,7 @@ impl RootKey {
         let (_prk, hk) =
             Hkdf::<Sha256>::extract(Some(self.key.as_slice()), shared_secret.as_bytes());
         let mut derived_secrets = [0u8; 64];
-        hk.expand("WhisperRatchet".as_bytes(), &mut derived_secrets)
+        hk.expand("MatrixRatchet".as_bytes(), &mut derived_secrets)
             .expect("HKDF error");
         let (first, second) = derived_secrets.split_at(32);
         let root = RootKey {
@@ -86,7 +86,7 @@ impl ChainKey {
 
         let (_prk, hk) = Hkdf::<Sha256>::extract(None, keys.to_vec().as_slice());
         let mut derived_secrets = [0u8; 80];
-        hk.expand("WhisperMessageKeys".as_bytes(), &mut derived_secrets)
+        hk.expand("MatrixMessageKeys".as_bytes(), &mut derived_secrets)
             .expect("HKDF error");
         let (first, other) = derived_secrets.split_at(32);
         let (second, third) = other.split_at(32);
@@ -169,7 +169,7 @@ impl SenderChainKey {
 
         let (_prk, hk) = Hkdf::<Sha256>::extract(None, keys.to_vec().as_slice());
         let mut derived_secrets = [0u8; 48];
-        hk.expand("WhisperGroup".as_bytes(), &mut derived_secrets)
+        hk.expand("MatrixGroup".as_bytes(), &mut derived_secrets)
             .expect("HKDF error");
         let (first, other) = derived_secrets.split_at(16);
         let mut cipher_key = [0u8; 32];
@@ -202,7 +202,7 @@ impl SenderMessageKeys {
 
         let (_prk, hk) = Hkdf::<Sha256>::extract(None, seed.as_slice());
         let mut derived_secrets = [0u8; 48];
-        hk.expand("WhisperGroup".as_bytes(), &mut derived_secrets)
+        hk.expand("MatrixGroup".as_bytes(), &mut derived_secrets)
             .expect("HKDF error");
         let (first, other) = derived_secrets.split_at(16);
         let mut cipher_key = [0u8; 32];
@@ -355,7 +355,7 @@ impl AliceParameters {
 
         let (_prk, hk) = Hkdf::<Sha256>::extract(None, secrets.as_slice());
         let mut derived_secrets = [0u8; 64];
-        hk.expand("WhisperText".as_bytes(), &mut derived_secrets)
+        hk.expand("MatrixText".as_bytes(), &mut derived_secrets)
             .expect("HKDF error");
         let (first, second) = derived_secrets.split_at(32);
         //println!("alice_derived_secrets: {:x?}, {:x?}", first, second);
@@ -455,7 +455,7 @@ impl BobParameters {
 
         let (_prk, hk) = Hkdf::<Sha256>::extract(None, secrets.as_slice());
         let mut derived_secrets = [0u8; 64];
-        hk.expand("WhisperText".as_bytes(), &mut derived_secrets)
+        hk.expand("MatrixText".as_bytes(), &mut derived_secrets)
             .expect("HKDF error");
         let (first, second) = derived_secrets.split_at(32);
         //        println!("bob_derived_secrets: {:x?} {:x?}", first, second);

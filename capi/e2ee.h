@@ -54,10 +54,6 @@ struct SignedPreKey {
   unsigned long long timestamp;
 };
 
-struct EcPublicKey {
-  unsigned char data[32];
-};
-
 int curve_calculate_agreement(struct SharedKey **shared_key_data,
                               const unsigned char (*public_key)[32],
                               const unsigned char (*private_key)[32]);
@@ -127,12 +123,12 @@ int key_helper_generate_signed_pre_key(struct SignedPreKey **key_pair,
 int process_with_key_bundle(const struct Address *address,
                             unsigned int registration_id,
                             unsigned int device_id,
-                            const struct EcPublicKey *pre_key,
+                            unsigned char pre_key[32],
                             unsigned int pre_key_id,
-                            const struct EcPublicKey *signed_pre_key,
+                            unsigned char signed_pre_key[32],
                             unsigned int signed_pre_key_id,
-                            const struct Signature *signature,
-                            const struct EcPublicKey *identity_key,
+                            unsigned char signature[64],
+                            unsigned char identity_key[32],
                             const char *signed_data,
                             unsigned int signed_data_len);
 

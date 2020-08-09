@@ -15,7 +15,7 @@ pub enum Direction {
 pub trait SessionStore {
     fn load_session(&self, address: &Address) -> Result<Option<SessionRecord>, MyError>;
     fn store_session(&mut self, address: Address, session: SessionRecord) -> Result<(), MyError>;
-    fn contains_session(&self, address: &Address) -> Result<Option<bool>, MyError>;
+    // fn contains_session(&self, address: &Address) -> Result<Option<bool>, MyError>;
     fn delete_session(&mut self, address: &Address);
     fn delete_all_sessions(&mut self);
 }
@@ -39,17 +39,17 @@ impl SessionStore for MemorySessionStore {
         Ok(())
     }
 
-    fn contains_session(&self, address: &'_ Address) -> Result<Option<bool>, MyError> {
-        if self.sessions.is_empty() {
-            return Ok(Some(false));
-        }
+    // fn contains_session(&self, address: &'_ Address) -> Result<Option<bool>, MyError> {
+    //     if self.sessions.is_empty() {
+    //         return Ok(Some(false));
+    //     }
 
-        if let Some(_) = self.sessions.get(address) {
-            return Ok(Some(true));
-        }
+    //     if let Some(_) = self.sessions.get(address) {
+    //         return Ok(Some(true));
+    //     }
 
-        Ok(Some(false))
-    }
+    //     Ok(Some(false))
+    // }
 
     fn delete_session(&mut self, address: &'_ Address) {
         self.sessions.remove(address);

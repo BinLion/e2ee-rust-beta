@@ -50,22 +50,22 @@ pub unsafe extern "system" fn Java_ai_totok_e2ee_RustKeyHelper_newKeyPair(
 
     let jo_public_key = env
         .new_object(
-            "ai/totok/e2ee/EcPublicKey",
+            "com/blue/baselib/ikey/EcPublicKey",
             "([B)V",
             &[JValue::Object(JObject::from(ja_public_key))],
         )
         .unwrap();
     let jo_private_key = env
         .new_object(
-            "ai/totok/e2ee/EcPrivateKey",
+            "com/blue/baselib/ikey/EcPrivateKey",
             "([B)V",
             &[JValue::Object(JObject::from(ja_private_key))],
         )
         .unwrap();
     let jo_key_pair = env
         .new_object(
-            "ai/totok/e2ee/KeyPair",
-            "(Lai/totok/e2ee/EcPublicKey;Lai/totok/e2ee/EcPrivateKey;)V",
+            "com/blue/baselib/ikey/KeyPair",
+            "(Lcom/blue/baselib/ikey/EcPublicKey;Lcom/blue/baselib/ikey/EcPrivateKey;)V",
             &[
                 JValue::Object(jo_public_key),
                 JValue::Object(jo_private_key),
@@ -88,22 +88,22 @@ pub unsafe extern "system" fn Java_ai_totok_e2ee_RustKeyHelper_newIdentityKey(
 
     let jo_public_key = env
         .new_object(
-            "ai/totok/e2ee/EcPublicKey",
+            "com/blue/baselib/ikey/EcPublicKey",
             "([B)V",
             &[JValue::Object(JObject::from(ja_public_key))],
         )
         .unwrap();
     let jo_private_key = env
         .new_object(
-            "ai/totok/e2ee/EcPrivateKey",
+            "com/blue/baselib/ikey/EcPrivateKey",
             "([B)V",
             &[JValue::Object(JObject::from(ja_private_key))],
         )
         .unwrap();
     let jo_key_pair = env
         .new_object(
-            "ai/totok/e2ee/IdentityKeyPair",
-            "(Lai/totok/e2ee/EcPublicKey;Lai/totok/e2ee/EcPrivateKey;)V",
+            "com/blue/baselib/ikey/IdentityKeyPair",
+            "(Lcom/blue/baselib/ikey/EcPublicKey;Lcom/blue/baselib/ikey/EcPrivateKey;)V",
             &[
                 JValue::Object(jo_public_key),
                 JValue::Object(jo_private_key),
@@ -122,7 +122,7 @@ pub unsafe extern "system" fn Java_ai_totok_e2ee_RustKeyHelper_newSignedPreKey(
     key_id: jint,
 ) -> jobject {
     let jv_public_key = env
-        .get_field(ik, "publicKey", "Lai/totok/e2ee/EcPublicKey;")
+        .get_field(ik, "publicKey", "Lcom/blue/baselib/ikey/EcPublicKey;")
         .unwrap();
     let jo_public_key = jv_public_key.l().unwrap();
     let ja_public_key = env
@@ -134,7 +134,7 @@ pub unsafe extern "system" fn Java_ai_totok_e2ee_RustKeyHelper_newSignedPreKey(
     let public_key = env.convert_byte_array(ja_public_key).unwrap();
 
     let jv_private_key = env
-        .get_field(ik, "privateKey", "Lai/totok/e2ee/EcPrivateKey;")
+        .get_field(ik, "privateKey", "Lcom/blue/baselib/ikey/EcPrivateKey;")
         .unwrap();
     let jo_private_key = jv_private_key.l().unwrap();
     let ja_private_key = env
@@ -163,14 +163,14 @@ pub unsafe extern "system" fn Java_ai_totok_e2ee_RustKeyHelper_newSignedPreKey(
 
     let jo_public_key = env
         .new_object(
-            "ai/totok/e2ee/EcPublicKey",
+            "com/blue/baselib/ikey/EcPublicKey",
             "([B)V",
             &[JValue::Object(JObject::from(ja_public_key))],
         )
         .unwrap();
     let jo_private_key = env
         .new_object(
-            "ai/totok/e2ee/EcPrivateKey",
+            "com/blue/baselib/ikey/EcPrivateKey",
             "([B)V",
             &[JValue::Object(JObject::from(ja_private_key))],
         )
@@ -183,8 +183,8 @@ pub unsafe extern "system" fn Java_ai_totok_e2ee_RustKeyHelper_newSignedPreKey(
     debug!("ts: {:?}", ts.j());
 
     let jo_key_pair = env.new_object(
-        "ai/totok/e2ee/SignedPreKey",
-        "(ILai/totok/e2ee/EcPrivateKey;Lai/totok/e2ee/EcPublicKey;[BJ)V",
+        "com/blue/baselib/ikey/SignedPreKey",
+        "(ILcom/blue/baselib/ikey/EcPrivateKey;Lcom/blue/baselib/ikey/EcPublicKey;[BJ)V",
         &[
             JValue::Int(key_id),
             JValue::Object(jo_private_key),
@@ -224,22 +224,22 @@ pub unsafe extern "system" fn Java_ai_totok_e2ee_RustKeyHelper_newPreKey(
 
     let jo_public_key = env
         .new_object(
-            "ai/totok/e2ee/EcPublicKey",
+            "com/blue/baselib/ikey/EcPublicKey",
             "([B)V",
             &[JValue::Object(JObject::from(ja_public_key))],
         )
         .unwrap();
     let jo_private_key = env
         .new_object(
-            "ai/totok/e2ee/EcPrivateKey",
+            "com/blue/baselib/ikey/EcPrivateKey",
             "([B)V",
             &[JValue::Object(JObject::from(ja_private_key))],
         )
         .unwrap();
     let jo_key_pair = env
         .new_object(
-            "ai/totok/e2ee/PreKeyRecord",
-            "(ILai/totok/e2ee/EcPrivateKey;Lai/totok/e2ee/EcPublicKey;)V",
+            "com/blue/baselib/ikey/PreKeyRecord",
+            "(ILcom/blue/baselib/ikey/EcPrivateKey;Lcom/blue/baselib/ikey/EcPublicKey;)V",
             &[
                 JValue::Int(key_id),
                 JValue::Object(jo_private_key),
@@ -272,22 +272,22 @@ pub unsafe extern "system" fn Java_ai_totok_e2ee_RustKeyHelper_newPreKeys(
 
         let jo_public_key = env
             .new_object(
-                "ai/totok/e2ee/EcPublicKey",
+                "com/blue/baselib/ikey/EcPublicKey",
                 "([B)V",
                 &[JValue::Object(JObject::from(ja_public_key))],
             )
             .unwrap();
         let jo_private_key = env
             .new_object(
-                "ai/totok/e2ee/EcPrivateKey",
+                "com/blue/baselib/ikey/EcPrivateKey",
                 "([B)V",
                 &[JValue::Object(JObject::from(ja_private_key))],
             )
             .unwrap();
         let jo_key_pair = env
             .new_object(
-                "ai/totok/e2ee/PreKeyRecord",
-                "(ILai/totok/e2ee/EcPrivateKey;Lai/totok/e2ee/EcPublicKey;)V",
+                "com/blue/baselib/ikey/PreKeyRecord",
+                "(ILcom/blue/baselib/ikey/EcPrivateKey;Lcom/blue/baselib/ikey/EcPublicKey;)V",
                 &[
                     JValue::Int(key.id as i32),
                     JValue::Object(jo_private_key),
@@ -489,7 +489,10 @@ pub extern "system" fn Java_ai_totok_e2ee_RustKeyHelper_processWithKeyBundle(
         // let _ = env.throw(f);
         match e {
             rust::errors::MyError::NoSignedKeyException => {
-                let _ = env.throw_new("ai/totok/e2ee/NoSignedKeyException", "no signed key");
+                let _ = env.throw_new(
+                    "com/blue/baselib/ikey/NoSignedKeyException",
+                    "no signed key",
+                );
             }
             _ => {
                 let _ = env.throw(format!("process_with_key_bundle error: {:?}", e));
@@ -512,7 +515,7 @@ pub extern "system" fn Java_ai_totok_e2ee_RustKeyHelper_cipherEncrypt(
 ) -> jobject {
     let jo_message_null = env
         .new_object(
-            "ai/totok/e2ee/CipherMessage",
+            "com/blue/baselib/ikey/CipherMessage",
             "([BI)V",
             &[JValue::Object(JObject::from(plain_text)), JValue::Int(0)],
         )
@@ -559,7 +562,7 @@ pub extern "system" fn Java_ai_totok_e2ee_RustKeyHelper_cipherEncrypt(
 
     let jo_message = env
         .new_object(
-            "ai/totok/e2ee/CipherMessage",
+            "com/blue/baselib/ikey/CipherMessage",
             "([BI)V",
             &[
                 JValue::Object(JObject::from(ja_data)),
@@ -642,19 +645,19 @@ pub extern "system" fn Java_ai_totok_e2ee_RustKeyHelper_cipherDecrypt(
                         match e {
                             rust::errors::MyError::DuplicateMessageException => {
                                 let _ = env.throw_new(
-                                    "ai/totok/e2ee/DuplicateMessageException",
+                                    "com/blue/baselib/ikey/DuplicateMessageException",
                                     "receive message with old counter",
                                 );
                             }
                             rust::errors::MyError::NoPreKeyException => {
                                 let _ = env.throw_new(
-                                    "ai/totok/e2ee/NoPreKeyException",
+                                    "com/blue/baselib/ikey/NoPreKeyException",
                                     "no pre key found",
                                 );
                             }
                             rust::errors::MyError::NoSignedKeyException => {
                                 let _ = env.throw_new(
-                                    "ai/totok/e2ee/NoSignedKeyException",
+                                    "com/blue/baselib/ikey/NoSignedKeyException",
                                     "no signed key found",
                                 );
                             }
@@ -704,7 +707,7 @@ pub extern "system" fn Java_ai_totok_e2ee_RustKeyHelper_cipherDecrypt(
                         match e {
                             rust::errors::MyError::DuplicateMessageException => {
                                 let _ = env.throw_new(
-                                    "ai/totok/e2ee/DuplicateMessageException",
+                                    "com/blue/baselib/ikey/DuplicateMessageException",
                                     "receive message with old counter",
                                 );
                             }
@@ -986,10 +989,10 @@ unsafe fn JNI_OnLoad(jvm: JavaVM, _reserved: *mut c_void) -> jint {
     );
     info!("Load JNI...");
 
-    let class_name: &str = "ai/totok/e2ee/RustKeyHelper";
+    let class_name: &str = "com/blue/baselib/ikey/RustKeyHelper";
     let jni_methods = [jni_method!(
         initStoreInterface,
-        "(Lai/totok/e2ee/StoreInterface;)V"
+        "(Lcom/blue/baselib/ikey/StoreInterface;)V"
     )];
 
     let ok = register_natives(&jvm, class_name, jni_methods.as_ref());
@@ -1243,93 +1246,93 @@ impl rust::store::SessionStore for JavaSessionStore {
         Ok(())
     }
 
-    fn contains_session(&self, address: &'_ Address) -> Result<Option<bool>, MyError> {
-        //let raw = Box::into_raw(Box::new(address.clone())) as jlong;
-        trace!("call java containSession begin");
-        let ptr_jvm = JVM_GLOBAL.lock().unwrap();
-        if (*ptr_jvm).is_none() {
-            error!("jvm is none");
-            return Err(MyError::SessionError {
-                code: 9010,
-                name: "contains_session".to_string(),
-                msg: "jvm is none".to_string(),
-            });
-        }
+    // fn contains_session(&self, address: &'_ Address) -> Result<Option<bool>, MyError> {
+    //     //let raw = Box::into_raw(Box::new(address.clone())) as jlong;
+    //     trace!("call java containSession begin");
+    //     let ptr_jvm = JVM_GLOBAL.lock().unwrap();
+    //     if (*ptr_jvm).is_none() {
+    //         error!("jvm is none");
+    //         return Err(MyError::SessionError {
+    //             code: 9010,
+    //             name: "contains_session".to_string(),
+    //             msg: "jvm is none".to_string(),
+    //         });
+    //     }
 
-        let ptr_fn = JNI_CALLBACK.lock().unwrap();
-        if (*ptr_fn).is_none() {
-            error!("get callback is none");
-            return Err(MyError::SessionError {
-                code: 9011,
-                name: "contains_session".to_string(),
-                msg: "callback is none".to_string(),
-            });
-        }
+    //     let ptr_fn = JNI_CALLBACK.lock().unwrap();
+    //     if (*ptr_fn).is_none() {
+    //         error!("get callback is none");
+    //         return Err(MyError::SessionError {
+    //             code: 9011,
+    //             name: "contains_session".to_string(),
+    //             msg: "callback is none".to_string(),
+    //         });
+    //     }
 
-        let jvm: &JavaVM = (*ptr_jvm).as_ref().unwrap();
+    //     let jvm: &JavaVM = (*ptr_jvm).as_ref().unwrap();
 
-        let env_result = jvm.attach_current_thread_permanently();
-        match env_result {
-            Ok(env) => {
-                let jo_name = JValue::Object(env.new_string(address.name.clone()).unwrap().into());
-                let args: [JValue; 2] = [jo_name, JValue::Int(address.device_id as i32)];
-                let obj = (*ptr_fn).as_ref().unwrap().as_obj();
-                let call_result =
-                    env.call_method(obj, "containSession", "(Ljava/lang/String;I)Z", &args);
-                if let Ok(true) = env.exception_check() {
-                    let _ = env.exception_describe();
-                    let _ = env.exception_clear();
-                    // let _ = env.throw_new("java/lang/Exception", "JNI抛出的异常！");
-                    trace!("call java containSession exception");
-                    return Err(MyError::SessionError {
-                        code: 9012,
-                        name: "contains_session".to_string(),
-                        msg: "call java containSession exception".to_string(),
-                    });
-                }
-                match call_result {
-                    Ok(jvalue) => {
-                        return Ok(Some(
-                            jvalue.z().expect("unwrap java containSession result fail"),
-                        ));
-                    }
-                    Err(_e) => {
-                        error!("call java containSession fail");
-                        return Err(MyError::SessionError {
-                            code: 9013,
-                            name: "contains_session".to_string(),
-                            msg: "call java containSession fail".to_string(),
-                        });
-                    }
-                }
-            }
-            Err(_e) => {
-                error!("get env fail");
-                return Err(MyError::SessionError {
-                    code: 9014,
-                    name: "contains_session".to_string(),
-                    msg: "get env fail".to_string(),
-                });
-            }
-        }
+    //     let env_result = jvm.attach_current_thread_permanently();
+    //     match env_result {
+    //         Ok(env) => {
+    //             let jo_name = JValue::Object(env.new_string(address.name.clone()).unwrap().into());
+    //             let args: [JValue; 2] = [jo_name, JValue::Int(address.device_id as i32)];
+    //             let obj = (*ptr_fn).as_ref().unwrap().as_obj();
+    //             let call_result =
+    //                 env.call_method(obj, "containSession", "(Ljava/lang/String;I)Z", &args);
+    //             if let Ok(true) = env.exception_check() {
+    //                 let _ = env.exception_describe();
+    //                 let _ = env.exception_clear();
+    //                 // let _ = env.throw_new("java/lang/Exception", "JNI抛出的异常！");
+    //                 trace!("call java containSession exception");
+    //                 return Err(MyError::SessionError {
+    //                     code: 9012,
+    //                     name: "contains_session".to_string(),
+    //                     msg: "call java containSession exception".to_string(),
+    //                 });
+    //             }
+    //             match call_result {
+    //                 Ok(jvalue) => {
+    //                     return Ok(Some(
+    //                         jvalue.z().expect("unwrap java containSession result fail"),
+    //                     ));
+    //                 }
+    //                 Err(_e) => {
+    //                     error!("call java containSession fail");
+    //                     return Err(MyError::SessionError {
+    //                         code: 9013,
+    //                         name: "contains_session".to_string(),
+    //                         msg: "call java containSession fail".to_string(),
+    //                     });
+    //                 }
+    //             }
+    //         }
+    //         Err(_e) => {
+    //             error!("get env fail");
+    //             return Err(MyError::SessionError {
+    //                 code: 9014,
+    //                 name: "contains_session".to_string(),
+    //                 msg: "get env fail".to_string(),
+    //             });
+    //         }
+    //     }
 
-        //        call_jvm(&JNI_CALLBACK, move |obj: JObject, env: &JNIEnv| {
-        //            let args: [JValue; 1] = [JValue::from(raw)];
-        //            let result = env.call_method(obj, "containSession", "(J)Z", &args);
-        //
-        //            match result {
-        //                Ok(jvalue) => {
-        //                    has = jvalue.z().unwrap();
-        //                },
-        //                Err(e) => {
-        //                    error!("call java containSession fail!");
-        //                }
-        //            }
-        //
-        //        });
-        //
-        //        has
-    }
+    //     //        call_jvm(&JNI_CALLBACK, move |obj: JObject, env: &JNIEnv| {
+    //     //            let args: [JValue; 1] = [JValue::from(raw)];
+    //     //            let result = env.call_method(obj, "containSession", "(J)Z", &args);
+    //     //
+    //     //            match result {
+    //     //                Ok(jvalue) => {
+    //     //                    has = jvalue.z().unwrap();
+    //     //                },
+    //     //                Err(e) => {
+    //     //                    error!("call java containSession fail!");
+    //     //                }
+    //     //            }
+    //     //
+    //     //        });
+    //     //
+    //     //        has
+    // }
 
     fn delete_session(&mut self, _address: &'_ Address) {
         unimplemented!()
@@ -1367,7 +1370,7 @@ impl rust::store::IdentityKeyStore for JavaIdentityStore {
                 let call_result = env.call_method(
                     obj,
                     "getIdentityKeyPair",
-                    "()Lai/totok/e2ee/IdentityKeyPair;",
+                    "()Lcom/blue/baselib/ikey/IdentityKeyPair;",
                     &[],
                 );
                 if let Ok(true) = env.exception_check() {
@@ -1385,7 +1388,7 @@ impl rust::store::IdentityKeyStore for JavaIdentityStore {
                             return IdentityKeyPair::default();
                         }
                         let jv_public_key = env
-                            .get_field(ik, "publicKey", "Lai/totok/e2ee/EcPublicKey;")
+                            .get_field(ik, "publicKey", "Lcom/blue/baselib/ikey/EcPublicKey;")
                             .unwrap();
                         let jo_public_key = jv_public_key.l().unwrap();
                         if jo_public_key.is_null() {
@@ -1400,7 +1403,7 @@ impl rust::store::IdentityKeyStore for JavaIdentityStore {
                         let public_key = env.convert_byte_array(ja_public_key).unwrap();
 
                         let jv_private_key = env
-                            .get_field(ik, "privateKey", "Lai/totok/e2ee/EcPrivateKey;")
+                            .get_field(ik, "privateKey", "Lcom/blue/baselib/ikey/EcPrivateKey;")
                             .unwrap();
                         let jo_private_key = jv_private_key.l().unwrap();
                         if jo_public_key.is_null() {
@@ -1680,7 +1683,7 @@ impl rust::store::SignedPreKeyStore for JavaSignedKeyStore {
                 let call_result = env.call_method(
                     obj,
                     "loadSignedPreKey",
-                    "(I)Lai/totok/e2ee/SignedPreKey;",
+                    "(I)Lcom/blue/baselib/ikey/SignedPreKey;",
                     &args,
                 );
                 if let Ok(true) = env.exception_check() {
@@ -1701,7 +1704,11 @@ impl rust::store::SignedPreKeyStore for JavaSignedKeyStore {
                                     return None;
                                 }
                                 let jv_public_key = env
-                                    .get_field(jo, "publicKey", "Lai/totok/e2ee/EcPublicKey;")
+                                    .get_field(
+                                        jo,
+                                        "publicKey",
+                                        "Lcom/blue/baselib/ikey/EcPublicKey;",
+                                    )
                                     .unwrap();
                                 let jo_public_key = jv_public_key.l().unwrap();
                                 let ja_public_key = env
@@ -1714,7 +1721,11 @@ impl rust::store::SignedPreKeyStore for JavaSignedKeyStore {
                                 let public_key = env.convert_byte_array(ja_public_key).unwrap();
 
                                 let jv_private_key = env
-                                    .get_field(jo, "privateKey", "Lai/totok/e2ee/EcPrivateKey;")
+                                    .get_field(
+                                        jo,
+                                        "privateKey",
+                                        "Lcom/blue/baselib/ikey/EcPrivateKey;",
+                                    )
                                     .unwrap();
                                 let jo_private_key = jv_private_key.l().unwrap();
                                 let ja_private_key = env
@@ -1806,8 +1817,12 @@ impl rust::store::PreKeyStore for JavaPreKeyStore {
             Ok(env) => {
                 let obj = (*ptr_fn).as_ref().unwrap().as_obj();
                 let args: [JValue; 1] = [JValue::Int(id as i32)];
-                let call_result =
-                    env.call_method(obj, "loadPreKey", "(I)Lai/totok/e2ee/PreKeyRecord;", &args);
+                let call_result = env.call_method(
+                    obj,
+                    "loadPreKey",
+                    "(I)Lcom/blue/baselib/ikey/PreKeyRecord;",
+                    &args,
+                );
                 if let Ok(true) = env.exception_check() {
                     let _ = env.exception_describe();
                     let _ = env.exception_clear();
@@ -1825,7 +1840,11 @@ impl rust::store::PreKeyStore for JavaPreKeyStore {
                                     return None;
                                 }
                                 let jv_public_key = env
-                                    .get_field(jo, "publicKey", "Lai/totok/e2ee/EcPublicKey;")
+                                    .get_field(
+                                        jo,
+                                        "publicKey",
+                                        "Lcom/blue/baselib/ikey/EcPublicKey;",
+                                    )
                                     .unwrap();
                                 let jo_public_key = jv_public_key.l().unwrap();
                                 let ja_public_key = env
@@ -1838,7 +1857,11 @@ impl rust::store::PreKeyStore for JavaPreKeyStore {
                                 let public_key = env.convert_byte_array(ja_public_key).unwrap();
 
                                 let jv_private_key = env
-                                    .get_field(jo, "privateKey", "Lai/totok/e2ee/EcPrivateKey;")
+                                    .get_field(
+                                        jo,
+                                        "privateKey",
+                                        "Lcom/blue/baselib/ikey/EcPrivateKey;",
+                                    )
                                     .unwrap();
                                 let jo_private_key = jv_private_key.l().unwrap();
                                 let ja_private_key = env

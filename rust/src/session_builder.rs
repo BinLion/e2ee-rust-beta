@@ -805,24 +805,24 @@ impl<'a> SessionBuilder<'a> {
     }
 
     pub fn decrypt(&mut self, encrypted: SignalMessage) -> Result<Vec<u8>> {
-        let has_opt = self.session_store.contains_session(&self.address)?;
-        if has_opt.is_none() {
-            trace!("in rust decrypt. containSession fail");
-            return Err(MyError::SessionError {
-                code: 2060,
-                name: "message decrypt".to_string(),
-                msg: "call containSession fail".to_string(),
-            });
-        }
+        // let has_opt = self.session_store.contains_session(&self.address)?;
+        // if has_opt.is_none() {
+        //     trace!("in rust decrypt. containSession fail");
+        //     return Err(MyError::SessionError {
+        //         code: 2060,
+        //         name: "message decrypt".to_string(),
+        //         msg: "call containSession fail".to_string(),
+        //     });
+        // }
 
-        if !has_opt.unwrap() {
-            trace!("in rust decrypt. no session");
-            return Err(MyError::SessionError {
-                code: 2061,
-                name: "message decrypt".to_string(),
-                msg: "no session".to_string(),
-            });
-        }
+        // if !has_opt.unwrap() {
+        //     trace!("in rust decrypt. no session");
+        //     return Err(MyError::SessionError {
+        //         code: 2061,
+        //         name: "message decrypt".to_string(),
+        //         msg: "no session".to_string(),
+        //     });
+        // }
 
         trace!("in rust decrypt. start load session");
         let session_record_opt = self.session_store.load_session(&self.address)?;

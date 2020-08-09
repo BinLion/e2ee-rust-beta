@@ -25,7 +25,7 @@ extern crate rust;
 extern "Rust" {
     pub fn c_load_session(address: *const Address) -> *const DataWrap;
     pub fn c_store_session(address: *const Address, session: DataWrap) -> c_int;
-    pub fn c_contain_session(address: *const Address) -> bool;
+    // pub fn c_contain_session(address: *const Address) -> bool;
     pub fn c_get_identity_keypair() -> *const IdentityKeyPair;
     pub fn c_get_local_registration_id() -> c_uint;
     pub fn c_save_identity(address: *const Address, public_key: EcPublicKey) -> c_int;
@@ -214,25 +214,25 @@ impl rust::store::SessionStore for CSessionStore {
         }
     }
 
-    fn contains_session(
-        &self,
-        address: &'_ rust::address::Address,
-    ) -> Result<Option<bool>, MyError> {
-        debug!("in rust address: {:?}", address);
-        let c_address = Address {
-            //name: address.name.as_bytes().as_ptr(),
-            name: CString::new(address.name.clone())
-                .expect("CString::new failed")
-                .into_raw(),
-            name_len: address.name.len() as c_uint,
-            device_id: address.device_id as i32,
-        };
-        unsafe {
-            let has = c_contain_session(&c_address);
-            debug!("in rust call c fn: has:{}", has);
-            return Ok(Some(has));
-        }
-    }
+    // fn contains_session(
+    //     &self,
+    //     address: &'_ rust::address::Address,
+    // ) -> Result<Option<bool>, MyError> {
+    //     debug!("in rust address: {:?}", address);
+    //     let c_address = Address {
+    //         //name: address.name.as_bytes().as_ptr(),
+    //         name: CString::new(address.name.clone())
+    //             .expect("CString::new failed")
+    //             .into_raw(),
+    //         name_len: address.name.len() as c_uint,
+    //         device_id: address.device_id as i32,
+    //     };
+    //     unsafe {
+    //         let has = c_contain_session(&c_address);
+    //         debug!("in rust call c fn: has:{}", has);
+    //         return Ok(Some(has));
+    //     }
+    // }
 
     // no use
     fn delete_session(&mut self, _address: &'_ rust::address::Address) {
@@ -469,12 +469,12 @@ pub struct SharedKey {
 pub struct PreKeyBundle {
     pub registration_id: u32,
     pub device_id: u32,
-    pub pre_key: EcPublicKey,
+    pub pre_key: [c_uchar; 32],
     pub pre_key_id: u32,
-    pub signed_pre_key: EcPublicKey,
+    pub signed_pre_key: [c_uchar; 32],
     pub signed_pre_key_id: u32,
-    pub signature: Signature,
-    pub identity_key: EcPublicKey,
+    pub signature: [c_uchar; 64],
+    pub identity_key: [c_uchar; 32],
 }
 
 #[repr(C)]
@@ -683,12 +683,12 @@ pub unsafe extern "C" fn process_with_key_bundle(
     address: *const Address,
     registration_id: c_uint,
     device_id: c_uint,
-    pre_key: *const EcPublicKey,
+    pre_key: [c_uchar; 32],
     pre_key_id: c_uint,
-    signed_pre_key: *const EcPublicKey,
+    signed_pre_key: [c_uchar; 32],
     signed_pre_key_id: c_uint,
-    signature: *const Signature,
-    identity_key: *const EcPublicKey,
+    signature: [c_uchar; 64],
+    identity_key: [c_uchar; 32],
     signed_data: *const c_char,
     signed_data_len: c_uint,
 ) -> c_int {
@@ -710,15 +710,15 @@ pub unsafe extern "C" fn process_with_key_bundle(
     );
     let mut rust_pre_key = PublicKey::default();
     if pre_key_id > 0 {
-        rust_pre_key = PublicKey::from((*pre_key).data);
+        rust_pre_key = PublicKey::from(pre_key);
     }
-    let rust_signed_key = PublicKey::from((*signed_pre_key).data);
-    let rust_signature_ret = curve_crypto::Signature::from_bytes(&(*signature).data);
+    let rust_signed_key = PublicKey::from(signed_pre_key);
+    let rust_signature_ret = curve_crypto::Signature::from_bytes(&signature);
     if rust_signature_ret.is_err() {
         return -2 as c_int;
     }
     let rust_signature = rust_signature_ret.unwrap();
-    let rust_identity = PublicKey::from((*identity_key).data);
+    let rust_identity = PublicKey::from(identity_key);
     let signed_data =
         slice::from_raw_parts(signed_data as *const c_uchar, signed_data_len as usize).to_vec();
     let key_bundle = rust::keys::PreKeyBundle {
