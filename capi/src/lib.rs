@@ -611,15 +611,15 @@ pub unsafe extern "C" fn key_helper_generate_pre_keys(
 #[no_mangle]
 pub unsafe extern "C" fn curve_calculate_agreement(
     shared_key_data: *mut *mut SharedKey,
-    public_key: *const [c_uchar; 32],
-    private_key: *const [c_uchar; 32],
+    public_key: [c_uchar; 32],
+    private_key: [c_uchar; 32],
 ) -> c_int {
-    if public_key.is_null() || private_key.is_null() {
-        return -1 as c_int;
-    }
+    // if public_key.is_null() || private_key.is_null() {
+    //     return -1 as c_int;
+    // }
 
-    let secret = PrivateKey::from(*private_key);
-    let shared_key = secret.dh(&PublicKey::from(*public_key));
+    let secret = PrivateKey::from(private_key);
+    let shared_key = secret.dh(&PublicKey::from(public_key));
     debug!("shared key:{:02x?}", shared_key);
     let shared = SharedKey {
         data: shared_key.as_bytes().clone(),
@@ -634,14 +634,14 @@ pub unsafe extern "C" fn curve_calculate_signature(
     signature: *mut *mut Signature,
     message: *const c_uchar,
     mlen: c_uint,
-    identity_key_pair: *const EcKeyPair,
+    identity_private_key: [c_uchar; 32],
 ) -> c_int {
-    if message.is_null() || identity_key_pair.is_null() {
+    if message.is_null() {
         return -1 as c_int;
     }
 
     let data = slice::from_raw_parts(message, mlen as usize);
-    let identity_private_key = PrivateKey::from((*identity_key_pair).private_key);
+    let identity_private_key = PrivateKey::from(identity_private_key);
     let rust_signature = identity_private_key.sign(data);
     let sign = Signature {
         data: rust_signature.to_bytes(),
@@ -653,19 +653,19 @@ pub unsafe extern "C" fn curve_calculate_signature(
 
 #[no_mangle]
 pub unsafe extern "C" fn curve_verify_signature(
-    public_key: *const [c_uchar; 32],
+    public_key: [c_uchar; 32],
     message: *const c_uchar,
     mlen: c_uint,
-    signature: *const Signature,
+    signature: [c_uchar; 64],
 ) -> c_int {
-    if public_key.is_null() || message.is_null() || signature.is_null() {
+    if message.is_null() {
         return -4 as c_int;
     }
 
     let data = slice::from_raw_parts(message, mlen as usize);
-    let identity_public_key = PublicKey::from(*public_key);
-    let sig1: &[u8] = &(*signature).data;
-    let sig2 = curve_crypto::Signature::from_bytes(sig1);
+    let identity_public_key = PublicKey::from(public_key);
+    // let sig1: &[u8] = &(*signature).data;
+    let sig2 = curve_crypto::Signature::from_bytes(&signature);
     if let Ok(sign_ret) = sig2 {
         let result = identity_public_key.verify(data, &sign_ret);
         if let Err(_e) = result {

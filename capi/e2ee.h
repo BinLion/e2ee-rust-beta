@@ -11,11 +11,6 @@ struct Signature {
   unsigned char data[64];
 };
 
-struct EcKeyPair {
-  unsigned char public_key[32];
-  unsigned char private_key[32];
-};
-
 struct Address {
   char *name;
   unsigned int name_len;
@@ -31,6 +26,11 @@ struct MessageBuf {
   const char *data;
   unsigned int length;
   unsigned int message_type;
+};
+
+struct EcKeyPair {
+  unsigned char public_key[32];
+  unsigned char private_key[32];
 };
 
 typedef struct EcKeyPair IdentityKeyPair;
@@ -55,18 +55,18 @@ struct SignedPreKey {
 };
 
 int curve_calculate_agreement(struct SharedKey **shared_key_data,
-                              const unsigned char (*public_key)[32],
-                              const unsigned char (*private_key)[32]);
+                              unsigned char public_key[32],
+                              unsigned char private_key[32]);
 
 int curve_calculate_signature(struct Signature **signature,
                               const unsigned char *message,
                               unsigned int mlen,
-                              const struct EcKeyPair *identity_key_pair);
+                              unsigned char identity_private_key[32]);
 
-int curve_verify_signature(const unsigned char (*public_key)[32],
+int curve_verify_signature(unsigned char public_key[32],
                            const unsigned char *message,
                            unsigned int mlen,
-                           const struct Signature *signature);
+                           unsigned char signature[64]);
 
 void free_address(const struct Address *address);
 
