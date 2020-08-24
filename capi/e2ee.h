@@ -55,18 +55,18 @@ struct SignedPreKey {
 };
 
 int curve_calculate_agreement(struct SharedKey **shared_key_data,
-                              unsigned char public_key[32],
-                              unsigned char private_key[32]);
+                              const unsigned char (*public_key)[32],
+                              const unsigned char (*private_key)[32]);
 
 int curve_calculate_signature(struct Signature **signature,
                               const unsigned char *message,
                               unsigned int mlen,
-                              unsigned char identity_private_key[32]);
+                              const unsigned char (*identity_private_key)[32]);
 
-int curve_verify_signature(unsigned char public_key[32],
+int curve_verify_signature(const unsigned char (*public_key)[32],
                            const unsigned char *message,
                            unsigned int mlen,
-                           unsigned char signature[64]);
+                           const unsigned char (*signature)[64]);
 
 void free_address(const struct Address *address);
 
@@ -123,12 +123,12 @@ int key_helper_generate_signed_pre_key(struct SignedPreKey **key_pair,
 int process_with_key_bundle(const struct Address *address,
                             unsigned int registration_id,
                             unsigned int device_id,
-                            unsigned char pre_key[32],
+                            const unsigned char (*pre_key)[32],
                             unsigned int pre_key_id,
-                            unsigned char signed_pre_key[32],
+                            const unsigned char (*signed_pre_key)[32],
                             unsigned int signed_pre_key_id,
-                            unsigned char signature[64],
-                            unsigned char identity_key[32],
+                            const unsigned char (*signature)[64],
+                            const unsigned char (*identity_key)[32],
                             const char *signed_data,
                             unsigned int signed_data_len);
 

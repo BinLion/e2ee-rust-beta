@@ -28,9 +28,9 @@ extern "Rust" {
     // pub fn c_contain_session(address: *const Address) -> bool;
     pub fn c_get_identity_keypair() -> *const IdentityKeyPair;
     pub fn c_get_local_registration_id() -> c_uint;
-    pub fn c_save_identity(address: *const Address, public_key: EcPublicKey) -> c_int;
-    pub fn c_get_identity(address: *const Address) -> *const EcPublicKey;
-    pub fn c_is_trusted_identity(address: *const Address, public_key: EcPublicKey) -> bool;
+    pub fn c_save_identity(address: *const Address, public_key: [c_uchar; 32]) -> c_int;
+    pub fn c_get_identity(address: *const Address) -> [c_uchar; 32];
+    pub fn c_is_trusted_identity(address: *const Address, public_key: [c_uchar; 32]) -> bool;
     pub fn c_load_signed_pre_key(id: c_uint) -> *const SignedPreKey;
     pub fn c_load_pre_key(id: c_uint) -> *const PreKey;
     pub fn c_store_sender_key(
@@ -162,8 +162,12 @@ impl rust::store::SessionStore for CSessionStore {
             device_id: address.device_id as i32,
         };
         debug!("c_load_session. address: {:?}", c_address);
+        let session = unsafe { c_load_session(&c_address) };
+        if session.is_null() {
+            return Ok(Some(rust::session_record::SessionRecord::default()));
+        }
         unsafe {
-            let c_session = &*c_load_session(&c_address);
+            let c_session = &*session;
             //println!("c_load_session after. session: {:?}", c_session);
             let data: &[u8] =
                 slice::from_raw_parts(c_session.data as *const c_uchar, c_session.length as usize);
@@ -271,12 +275,12 @@ impl rust::store::IdentityKeyStore for CIdentityStore {
             name_len: address.name.len() as c_uint,
             device_id: address.device_id as i32,
         };
-        let data = EcPublicKey {
-            data: identity.to_bytes(),
-        };
-        debug!("save_identity. key: {:x?}", data);
+        // let data = EcPublicKey {
+        //     data: identity.to_bytes(),
+        // };
+        // debug!("save_identity. key: {:x?}", data);
         unsafe {
-            c_save_identity(&c_address, data);
+            c_save_identity(&c_address, identity.to_bytes());
         }
         true
     }
@@ -291,12 +295,12 @@ impl rust::store::IdentityKeyStore for CIdentityStore {
             device_id: address.device_id as i32,
         };
         unsafe {
-            let identity = &*c_get_identity(&c_address);
+            let identity = c_get_identity(&c_address);
             debug!(
                 "c_get_identity. address:{:?}, key: {:x?}",
                 c_address, identity
             );
-            Some(PublicKey::from(identity.data))
+            Some(PublicKey::from(identity))
         }
     }
 
@@ -314,10 +318,10 @@ impl rust::store::IdentityKeyStore for CIdentityStore {
             name_len: address.name.len() as c_uint,
             device_id: address.device_id as i32,
         };
-        let data = EcPublicKey {
-            data: identity_key.to_bytes(),
-        };
-        unsafe { c_is_trusted_identity(&c_address, data) }
+        // let data = EcPublicKey {
+        //     data: identity_key.to_bytes(),
+        // };
+        unsafe { c_is_trusted_identity(&c_address, identity_key.to_bytes()) }
     }
 }
 
@@ -464,18 +468,18 @@ pub struct SharedKey {
     pub data: [c_uchar; 32],
 }
 
-#[repr(C)]
-#[derive(Clone)]
-pub struct PreKeyBundle {
-    pub registration_id: u32,
-    pub device_id: u32,
-    pub pre_key: [c_uchar; 32],
-    pub pre_key_id: u32,
-    pub signed_pre_key: [c_uchar; 32],
-    pub signed_pre_key_id: u32,
-    pub signature: [c_uchar; 64],
-    pub identity_key: [c_uchar; 32],
-}
+// #[repr(C)]
+// #[derive(Clone)]
+// pub struct PreKeyBundle {
+//     pub registration_id: u32,
+//     pub device_id: u32,
+//     pub pre_key: [c_uchar; 32],
+//     pub pre_key_id: u32,
+//     pub signed_pre_key: [c_uchar; 32],
+//     pub signed_pre_key_id: u32,
+//     pub signature: [c_uchar; 64],
+//     pub identity_key: [c_uchar; 32],
+// }
 
 #[repr(C)]
 #[derive(Debug)]
@@ -543,6 +547,8 @@ pub unsafe extern "C" fn key_helper_generate_ec_key_pair(key_pair: *mut *mut EcK
     let mut pair = EcKeyPair::default();
     pair.public_key = key.public.to_bytes();
     pair.private_key = key.private.to_bytes();
+    trace!("public_key:{:02x?}", pair.public_key);
+    trace!("private_key:{:02x?}", pair.private_key);
     let _ = key_pair.replace(Box::into_raw(Box::new(pair)));
     0 as c_int
 }
@@ -611,15 +617,17 @@ pub unsafe extern "C" fn key_helper_generate_pre_keys(
 #[no_mangle]
 pub unsafe extern "C" fn curve_calculate_agreement(
     shared_key_data: *mut *mut SharedKey,
-    public_key: [c_uchar; 32],
-    private_key: [c_uchar; 32],
+    public_key: *const [c_uchar; 32],
+    private_key: *const [c_uchar; 32],
 ) -> c_int {
-    // if public_key.is_null() || private_key.is_null() {
-    //     return -1 as c_int;
-    // }
+    if public_key.is_null() || private_key.is_null() {
+        return -1 as c_int;
+    }
 
-    let secret = PrivateKey::from(private_key);
-    let shared_key = secret.dh(&PublicKey::from(public_key));
+    let secret = PrivateKey::from(*private_key);
+    trace!("private_key:{:02x?}", *private_key);
+    trace!("public_key:{:02x?}", *public_key);
+    let shared_key = secret.dh(&PublicKey::from(*public_key));
     debug!("shared key:{:02x?}", shared_key);
     let shared = SharedKey {
         data: shared_key.as_bytes().clone(),
@@ -634,14 +642,15 @@ pub unsafe extern "C" fn curve_calculate_signature(
     signature: *mut *mut Signature,
     message: *const c_uchar,
     mlen: c_uint,
-    identity_private_key: [c_uchar; 32],
+    identity_private_key: *const [c_uchar; 32],
 ) -> c_int {
     if message.is_null() {
         return -1 as c_int;
     }
 
     let data = slice::from_raw_parts(message, mlen as usize);
-    let identity_private_key = PrivateKey::from(identity_private_key);
+    trace!("private_key:{:02x?}", *identity_private_key);
+    let identity_private_key = PrivateKey::from(*identity_private_key);
     let rust_signature = identity_private_key.sign(data);
     let sign = Signature {
         data: rust_signature.to_bytes(),
@@ -653,19 +662,19 @@ pub unsafe extern "C" fn curve_calculate_signature(
 
 #[no_mangle]
 pub unsafe extern "C" fn curve_verify_signature(
-    public_key: [c_uchar; 32],
+    public_key: *const [c_uchar; 32],
     message: *const c_uchar,
     mlen: c_uint,
-    signature: [c_uchar; 64],
+    signature: *const [c_uchar; 64],
 ) -> c_int {
     if message.is_null() {
         return -4 as c_int;
     }
 
     let data = slice::from_raw_parts(message, mlen as usize);
-    let identity_public_key = PublicKey::from(public_key);
+    let identity_public_key = PublicKey::from(*public_key);
     // let sig1: &[u8] = &(*signature).data;
-    let sig2 = curve_crypto::Signature::from_bytes(&signature);
+    let sig2 = curve_crypto::Signature::from_bytes(&*signature);
     if let Ok(sign_ret) = sig2 {
         let result = identity_public_key.verify(data, &sign_ret);
         if let Err(_e) = result {
@@ -683,12 +692,12 @@ pub unsafe extern "C" fn process_with_key_bundle(
     address: *const Address,
     registration_id: c_uint,
     device_id: c_uint,
-    pre_key: [c_uchar; 32],
+    pre_key: *const [c_uchar; 32],
     pre_key_id: c_uint,
-    signed_pre_key: [c_uchar; 32],
+    signed_pre_key: *const [c_uchar; 32],
     signed_pre_key_id: c_uint,
-    signature: [c_uchar; 64],
-    identity_key: [c_uchar; 32],
+    signature: *const [c_uchar; 64],
+    identity_key: *const [c_uchar; 32],
     signed_data: *const c_char,
     signed_data_len: c_uint,
 ) -> c_int {
@@ -710,15 +719,15 @@ pub unsafe extern "C" fn process_with_key_bundle(
     );
     let mut rust_pre_key = PublicKey::default();
     if pre_key_id > 0 {
-        rust_pre_key = PublicKey::from(pre_key);
+        rust_pre_key = PublicKey::from(*pre_key);
     }
-    let rust_signed_key = PublicKey::from(signed_pre_key);
-    let rust_signature_ret = curve_crypto::Signature::from_bytes(&signature);
+    let rust_signed_key = PublicKey::from(*signed_pre_key);
+    let rust_signature_ret = curve_crypto::Signature::from_bytes(&*signature);
     if rust_signature_ret.is_err() {
         return -2 as c_int;
     }
     let rust_signature = rust_signature_ret.unwrap();
-    let rust_identity = PublicKey::from(identity_key);
+    let rust_identity = PublicKey::from(*identity_key);
     let signed_data =
         slice::from_raw_parts(signed_data as *const c_uchar, signed_data_len as usize).to_vec();
     let key_bundle = rust::keys::PreKeyBundle {
@@ -855,7 +864,19 @@ pub unsafe extern "C" fn session_cipher_decrypt(
             Ok(message) => {
                 let result = session.pre_key_message_decrypt(message);
                 match result {
-                    Err(_e) => return -2 as c_int,
+                    Err(e) => match e {
+                        rust::errors::MyError::SessionError { code, name, msg } => {
+                            debug!(
+                                "session_cipher_decrypt fail. code:{}, name:{}, msg: {}",
+                                code, name, msg
+                            );
+                            return code as c_int;
+                        }
+                        rust::errors::MyError::NoPreKeyException => return -30 as c_int,
+                        rust::errors::MyError::NoSignedKeyException => return -40 as c_int,
+                        _ => return -20 as c_int,
+                    },
+                    // Err(_e) => return -2 as c_int,
                     Ok(text) => {
                         let length = text.len() as u32;
                         let string = CString::from_vec_unchecked(text);

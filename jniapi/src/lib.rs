@@ -39,7 +39,7 @@ macro_rules! jni_method {
 }
 
 #[no_mangle]
-pub unsafe extern "system" fn Java_ai_totok_e2ee_RustKeyHelper_newKeyPair(
+pub unsafe extern "system" fn Java_com_blue_baselib_ikey_RustKeyHelper_newKeyPair(
     env: JNIEnv,
     _: JClass,
 ) -> jobject {
@@ -77,7 +77,7 @@ pub unsafe extern "system" fn Java_ai_totok_e2ee_RustKeyHelper_newKeyPair(
 }
 
 #[no_mangle]
-pub unsafe extern "system" fn Java_ai_totok_e2ee_RustKeyHelper_newIdentityKey(
+pub unsafe extern "system" fn Java_com_blue_baselib_ikey_RustKeyHelper_newIdentityKey(
     env: JNIEnv,
     _: JClass,
 ) -> jobject {
@@ -115,7 +115,7 @@ pub unsafe extern "system" fn Java_ai_totok_e2ee_RustKeyHelper_newIdentityKey(
 }
 
 #[no_mangle]
-pub unsafe extern "system" fn Java_ai_totok_e2ee_RustKeyHelper_newSignedPreKey(
+pub unsafe extern "system" fn Java_com_blue_baselib_ikey_RustKeyHelper_newSignedPreKey(
     env: JNIEnv,
     _: JClass,
     ik: JObject,
@@ -198,7 +198,7 @@ pub unsafe extern "system" fn Java_ai_totok_e2ee_RustKeyHelper_newSignedPreKey(
 }
 
 #[no_mangle]
-pub extern "system" fn Java_ai_totok_e2ee_RustKeyHelper_initLogger(env: JNIEnv, _: JClass) {
+pub extern "system" fn Java_com_blue_baselib_ikey_RustKeyHelper_initLogger(env: JNIEnv, _: JClass) {
     android_logger::init_once(
         Config::default()
             .with_min_level(Level::Trace)
@@ -207,7 +207,7 @@ pub extern "system" fn Java_ai_totok_e2ee_RustKeyHelper_initLogger(env: JNIEnv, 
 }
 
 #[no_mangle]
-pub unsafe extern "system" fn Java_ai_totok_e2ee_RustKeyHelper_newPreKey(
+pub unsafe extern "system" fn Java_com_blue_baselib_ikey_RustKeyHelper_newPreKey(
     env: JNIEnv,
     _: JClass,
     key_id: jint,
@@ -252,7 +252,7 @@ pub unsafe extern "system" fn Java_ai_totok_e2ee_RustKeyHelper_newPreKey(
 }
 
 #[no_mangle]
-pub unsafe extern "system" fn Java_ai_totok_e2ee_RustKeyHelper_newPreKeys(
+pub unsafe extern "system" fn Java_com_blue_baselib_ikey_RustKeyHelper_newPreKeys(
     env: JNIEnv,
     _: JClass,
     start: jint,
@@ -307,7 +307,7 @@ pub unsafe extern "system" fn Java_ai_totok_e2ee_RustKeyHelper_newPreKeys(
 }
 
 #[no_mangle]
-pub extern "system" fn Java_ai_totok_e2ee_RustKeyHelper_curveAgreement(
+pub extern "system" fn Java_com_blue_baselib_ikey_RustKeyHelper_curveAgreement(
     env: JNIEnv,
     _: JClass,
     our_private: jbyteArray,
@@ -325,7 +325,7 @@ pub extern "system" fn Java_ai_totok_e2ee_RustKeyHelper_curveAgreement(
 }
 
 #[no_mangle]
-pub extern "system" fn Java_ai_totok_e2ee_RustKeyHelper_curveCalculateSignature(
+pub extern "system" fn Java_com_blue_baselib_ikey_RustKeyHelper_curveCalculateSignature(
     env: JNIEnv,
     _: JClass,
     our_private: jbyteArray,
@@ -342,7 +342,7 @@ pub extern "system" fn Java_ai_totok_e2ee_RustKeyHelper_curveCalculateSignature(
 }
 
 #[no_mangle]
-pub extern "system" fn Java_ai_totok_e2ee_RustKeyHelper_curveVerifySignature(
+pub extern "system" fn Java_com_blue_baselib_ikey_RustKeyHelper_curveVerifySignature(
     env: JNIEnv,
     _: JClass,
     their_public: jbyteArray,
@@ -365,7 +365,7 @@ pub extern "system" fn Java_ai_totok_e2ee_RustKeyHelper_curveVerifySignature(
 }
 
 #[no_mangle]
-pub extern "system" fn Java_ai_totok_e2ee_RustKeyHelper_processWithKeyBundle(
+pub extern "system" fn Java_com_blue_baselib_ikey_RustKeyHelper_processWithKeyBundle(
     env: JNIEnv,
     _: JClass,
     name: JString,
@@ -390,8 +390,10 @@ pub extern "system" fn Java_ai_totok_e2ee_RustKeyHelper_processWithKeyBundle(
 
     let mut pre_key = curve_crypto::PublicKey::default();
     let bob_pre_key_id = bob_pre_key_id as u32;
+    debug!("processWithKeyBundle. bob_pre_key_id:{}", bob_pre_key_id);
     if bob_pre_key_id > 0 {
         let bob_pre_key = env.convert_byte_array(bob_pre_key).unwrap();
+        debug!("processWithKeyBundle. bob_pre_key:{:?}", bob_pre_key);
         if bob_pre_key.len() != 32 {
             debug!(
                 "pre key length error. found: {}, expected 32, bytes:{:?}",
@@ -408,6 +410,7 @@ pub extern "system" fn Java_ai_totok_e2ee_RustKeyHelper_processWithKeyBundle(
     }
 
     let bob_signed_key = env.convert_byte_array(bob_signed_key).unwrap();
+    debug!("processWithKeyBundle. bob_signed_key:{:?}", bob_signed_key);
     if bob_signed_key.len() != 32 {
         debug!(
             "signed key length error. found: {}, expected 32, bytes:{:?}",
@@ -425,6 +428,7 @@ pub extern "system" fn Java_ai_totok_e2ee_RustKeyHelper_processWithKeyBundle(
     let signed_pre_key_id = bob_signed_key_id as u32;
 
     let signature_vec = env.convert_byte_array(signature).unwrap();
+    debug!("processWithKeyBundle. signature:{:?}", signature_vec);
     let signature_opt = curve_crypto::Signature::from_bytes(signature_vec.as_slice());
     if signature_opt.is_err() {
         debug!("signature bytes parse error. bytes: {:?}", signature_vec);
@@ -435,8 +439,10 @@ pub extern "system" fn Java_ai_totok_e2ee_RustKeyHelper_processWithKeyBundle(
     let signature = signature_opt.unwrap();
 
     let data = env.convert_byte_array(signed_data).unwrap();
+    debug!("processWithKeyBundle. sign data:{:?}", data);
 
     let identity_vec = env.convert_byte_array(bob_identity).unwrap();
+    debug!("processWithKeyBundle. identity:{:?}", identity_vec);
     if identity_vec.len() != 32 {
         debug!(
             "identity key length error. found: {}, expected 32, bytes:{:?}",
@@ -506,7 +512,7 @@ pub extern "system" fn Java_ai_totok_e2ee_RustKeyHelper_processWithKeyBundle(
 }
 
 #[no_mangle]
-pub extern "system" fn Java_ai_totok_e2ee_RustKeyHelper_cipherEncrypt(
+pub extern "system" fn Java_com_blue_baselib_ikey_RustKeyHelper_cipherEncrypt(
     env: JNIEnv,
     _: JClass,
     name: JString,
@@ -575,7 +581,7 @@ pub extern "system" fn Java_ai_totok_e2ee_RustKeyHelper_cipherEncrypt(
 }
 
 #[no_mangle]
-pub extern "system" fn Java_ai_totok_e2ee_RustKeyHelper_cipherDecrypt(
+pub extern "system" fn Java_com_blue_baselib_ikey_RustKeyHelper_cipherDecrypt(
     env: JNIEnv,
     _: JClass,
     name: JString,
@@ -735,7 +741,7 @@ pub extern "system" fn Java_ai_totok_e2ee_RustKeyHelper_cipherDecrypt(
 
 use rust::message::CiphertextMessage;
 #[no_mangle]
-pub extern "system" fn Java_ai_totok_e2ee_RustKeyHelper_createDistributionMessage(
+pub extern "system" fn Java_com_blue_baselib_ikey_RustKeyHelper_createDistributionMessage(
     env: JNIEnv,
     _: JClass,
     group: JString,
@@ -782,7 +788,7 @@ pub extern "system" fn Java_ai_totok_e2ee_RustKeyHelper_createDistributionMessag
 }
 
 #[no_mangle]
-pub extern "system" fn Java_ai_totok_e2ee_RustKeyHelper_getDistributionMessage(
+pub extern "system" fn Java_com_blue_baselib_ikey_RustKeyHelper_getDistributionMessage(
     env: JNIEnv,
     _: JClass,
     group: JString,
@@ -829,7 +835,7 @@ pub extern "system" fn Java_ai_totok_e2ee_RustKeyHelper_getDistributionMessage(
 }
 
 #[no_mangle]
-pub extern "system" fn Java_ai_totok_e2ee_RustKeyHelper_processDistributionMessage(
+pub extern "system" fn Java_com_blue_baselib_ikey_RustKeyHelper_processDistributionMessage(
     env: JNIEnv,
     _: JClass,
     group: JString,
@@ -873,7 +879,7 @@ pub extern "system" fn Java_ai_totok_e2ee_RustKeyHelper_processDistributionMessa
 }
 
 #[no_mangle]
-pub extern "system" fn Java_ai_totok_e2ee_RustKeyHelper_groupEncrypt(
+pub extern "system" fn Java_com_blue_baselib_ikey_RustKeyHelper_groupEncrypt(
     env: JNIEnv,
     _: JClass,
     group: JString,
@@ -923,7 +929,7 @@ pub extern "system" fn Java_ai_totok_e2ee_RustKeyHelper_groupEncrypt(
 }
 
 #[no_mangle]
-pub extern "system" fn Java_ai_totok_e2ee_RustKeyHelper_groupDecrypt(
+pub extern "system" fn Java_com_blue_baselib_ikey_RustKeyHelper_groupDecrypt(
     env: JNIEnv,
     _: JClass,
     group: JString,
@@ -984,7 +990,7 @@ pub extern "system" fn Java_ai_totok_e2ee_RustKeyHelper_groupDecrypt(
 unsafe fn JNI_OnLoad(jvm: JavaVM, _reserved: *mut c_void) -> jint {
     android_logger::init_once(
         Config::default()
-            .with_min_level(Level::Trace)
+            .with_min_level(Level::Debug)
             .with_tag("e2ee"),
     );
     info!("Load JNI...");
@@ -1106,7 +1112,7 @@ unsafe fn register_natives(jvm: &JavaVM, class_name: &str, methods: &[NativeMeth
 }
 
 #[no_mangle]
-pub extern "system" fn Java_ai_totok_e2ee_RustKeyHelper_newAddress(
+pub extern "system" fn Java_com_blue_baselib_ikey_RustKeyHelper_newAddress(
     env: JNIEnv,
     _: JClass,
     name: JString,
