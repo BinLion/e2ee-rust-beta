@@ -801,6 +801,8 @@ impl<'a> SessionBuilder<'a> {
             .session_store
             .store_session(self.address.clone(), session_record);
 
+        let _ = self.pre_key_store.remove_pre_key(preid);
+
         Ok(plain_text.to_vec())
     }
 

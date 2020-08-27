@@ -1914,8 +1914,16 @@ impl rust::store::PreKeyStore for JavaPreKeyStore {
         unimplemented!()
     }
 
-    fn remove_pre_key(&mut self, _id: u32) {
-        unimplemented!()
+    fn remove_pre_key(&mut self, id: u32) {
+        call_jvm(&JNI_CALLBACK, move |obj: JObject, env: &JNIEnv| {
+            let args: [JValue; 1] = [JValue::Int(id as i32)];
+            let result = env.call_method(obj, "removePreKey", "(I)Z", &args);
+            trace!("call java removePreKey result: {:?}", result);
+
+            if result.is_err() {
+                trace!("removePreKey fail!");
+            }
+        });
     }
 }
 

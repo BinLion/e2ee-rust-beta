@@ -33,6 +33,7 @@ extern "Rust" {
     pub fn c_is_trusted_identity(address: *const Address, public_key: [c_uchar; 32]) -> bool;
     pub fn c_load_signed_pre_key(id: c_uint) -> *const SignedPreKey;
     pub fn c_load_pre_key(id: c_uint) -> *const PreKey;
+    pub fn c_remove_pre_key(id: c_uint) -> bool;
     pub fn c_store_sender_key(
         group_id: *const c_char,
         address: *const Address,
@@ -389,11 +390,11 @@ impl rust::store::PreKeyStore for CPreKeyStore {
     }
 
     // no use
-    fn remove_pre_key(&mut self, _id: u32) {
-        //        unsafe {
-        //            let ret = c_remove_pre_key(id);
-        //            println!("c_remove_pre_key result:{}", ret);
-        //        }
+    fn remove_pre_key(&mut self, id: u32) {
+        unsafe {
+            let ret = c_remove_pre_key(id);
+            println!("c_remove_pre_key result:{}", ret);
+        }
     }
 }
 
