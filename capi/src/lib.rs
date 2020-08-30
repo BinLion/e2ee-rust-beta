@@ -163,13 +163,16 @@ impl rust::store::SessionStore for CSessionStore {
             device_id: address.device_id as i32,
         };
         debug!("c_load_session. address: {:?}", c_address);
+        //let session = unsafe { c_load_session(&c_address) };
+        debug!("c_load_session. {:p}", &c_load_session);
         let session = unsafe { c_load_session(&c_address) };
         if session.is_null() {
             return Ok(Some(rust::session_record::SessionRecord::default()));
         }
         unsafe {
+            debug!("c_load_session.... {:p}", &session);
             let c_session = &*session;
-            //println!("c_load_session after. session: {:?}", c_session);
+            //debug!("c_load_session after. session: {:?}", c_session);
             let data: &[u8] =
                 slice::from_raw_parts(c_session.data as *const c_uchar, c_session.length as usize);
             //            let data = CStr::from_ptr((*c_session).data);
