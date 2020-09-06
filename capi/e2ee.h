@@ -39,6 +39,7 @@ struct PreKey {
   unsigned char public_key[32];
   unsigned char private_key[32];
   unsigned int key_id;
+  unsigned long long timestamp;
 };
 
 struct PreKeyNode {
@@ -53,6 +54,10 @@ struct SignedPreKey {
   unsigned int key_id;
   unsigned long long timestamp;
 };
+
+#ifdef __cplusplus
+extern "C" {
+#endif // __cplusplus
 
 int curve_calculate_agreement(struct SharedKey **shared_key_data,
                               const unsigned char (*public_key)[32],
@@ -110,11 +115,16 @@ int group_process_distribution_message(const struct MessageBuf *distribution_mes
 
 int initE2eeSdkLogger(const char *level);
 
+int initE2eeSdkLoggerV2(const char *level, const char *file);
+
 int key_helper_generate_ec_key_pair(struct EcKeyPair **key_pair);
 
 int key_helper_generate_identity_key_pair(IdentityKeyPair **key_pair);
 
-int key_helper_generate_pre_keys(struct PreKeyNode **head, unsigned int start, unsigned int count);
+int key_helper_generate_pre_keys(struct PreKeyNode **head,
+                                 unsigned int start,
+                                 unsigned int count,
+                                 unsigned long long timestamp);
 
 int key_helper_generate_signed_pre_key(struct SignedPreKey **key_pair,
                                        const IdentityKeyPair *identity_key_pair,
@@ -140,3 +150,7 @@ int session_cipher_encrypt(struct MessageBuf **encrypted_message,
                            const struct Address *address,
                            const char *plain_text,
                            unsigned int text_len);
+
+#ifdef __cplusplus
+} // extern "C"
+#endif // __cplusplus

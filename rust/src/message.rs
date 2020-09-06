@@ -10,7 +10,7 @@ pub trait CiphertextMessage {
     fn get_type(&self) -> u8;
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct SignalMessage {
     version: u8,
     pub sender_ratchet_key: PublicKey,

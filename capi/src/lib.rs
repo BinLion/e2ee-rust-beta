@@ -9,6 +9,7 @@ use rust::message::CiphertextMessage;
 use simplelog::*;
 use std::ffi::CStr;
 use std::ffi::CString;
+use std::fs::File;
 use std::os::raw::c_char;
 use std::os::raw::c_int;
 use std::os::raw::c_uchar;
@@ -24,7 +25,7 @@ extern crate rust;
 
 extern "Rust" {
     pub fn c_load_session(address: *const Address) -> *const DataWrap;
-    pub fn c_store_session(address: *const Address, session: DataWrap) -> c_int;
+    pub fn c_store_session(address: *const Address, session: *const DataWrap) -> c_int;
     // pub fn c_contain_session(address: *const Address) -> bool;
     pub fn c_get_identity_keypair() -> *const IdentityKeyPair;
     pub fn c_get_local_registration_id() -> c_uint;
@@ -167,12 +168,15 @@ impl rust::store::SessionStore for CSessionStore {
         debug!("c_load_session. {:p}", &c_load_session);
         let session = unsafe { c_load_session(&c_address) };
         if session.is_null() {
-            return Ok(Some(rust::session_record::SessionRecord::default()));
+            return Ok(None);
         }
         unsafe {
             debug!("c_load_session.... {:p}", &session);
             let c_session = &*session;
-            //debug!("c_load_session after. session: {:?}", c_session);
+            debug!(
+                "c_load_session after. session length: {:?}",
+                c_session.length
+            );
             let data: &[u8] =
                 slice::from_raw_parts(c_session.data as *const c_uchar, c_session.length as usize);
             //            let data = CStr::from_ptr((*c_session).data);
@@ -209,7 +213,7 @@ impl rust::store::SessionStore for CSessionStore {
                 length,
             };
 
-            let result = c_store_session(&c_address, temp);
+            let result = c_store_session(&c_address, &temp);
             debug!("session store result: {}", result);
             if result != 0 {
                 return Err(MyError::SessionError {
@@ -333,11 +337,16 @@ pub struct CSignedKeyStore;
 impl rust::store::SignedPreKeyStore for CSignedKeyStore {
     fn load_signed_pre_key(&self, id: u32) -> Option<rust::keys::SignedPreKey> {
         unsafe {
-            let key = &*c_load_signed_pre_key(id);
+            let load_key = c_load_signed_pre_key(id);
+            if load_key.is_null() {
+                return None;
+            }
+            let key = &*load_key;
             let key_pair = KeyPair {
                 private: key.private_key.into(),
                 public: key.public_key.into(),
             };
+            trace!("c_load_signed_pre_key. id: {}, key_pair:{:?}", id, key_pair);
             let signature = curve_crypto::Signature::from_bytes(&key.signature).unwrap();
             let rust_key = rust::keys::SignedPreKey {
                 id: key.key_id,
@@ -369,7 +378,11 @@ pub struct CPreKeyStore;
 impl rust::store::PreKeyStore for CPreKeyStore {
     fn load_pre_key(&self, id: u32) -> Option<rust::keys::PreKey> {
         unsafe {
-            let key = &*c_load_pre_key(id);
+            let load_key = c_load_pre_key(id);
+            if load_key.is_null() {
+                return None;
+            }
+            let key = &*load_key;
             let key_pair = KeyPair {
                 private: key.private_key.into(),
                 public: key.public_key.into(),
@@ -442,14 +455,16 @@ pub struct PreKey {
     pub public_key: [c_uchar; 32],
     pub private_key: [c_uchar; 32],
     pub key_id: c_uint,
+    pub timestamp: c_ulonglong,
 }
 
 impl PreKey {
-    pub fn new(key: EcKeyPair, key_id: u32) -> Self {
+    pub fn new(key: EcKeyPair, key_id: u32, timestamp: u64) -> Self {
         Self {
             public_key: key.public_key,
             private_key: key.private_key,
             key_id,
+            timestamp,
         }
     }
 }
@@ -596,6 +611,7 @@ pub unsafe extern "C" fn key_helper_generate_pre_keys(
     head: *mut *mut PreKeyNode,
     start: c_uint,
     count: c_uint,
+    timestamp: c_ulonglong,
 ) -> c_int {
     *head = ptr::null_mut();
 
@@ -605,6 +621,7 @@ pub unsafe extern "C" fn key_helper_generate_pre_keys(
             private_key: key.keypair.private.to_bytes(),
             public_key: key.keypair.public.to_bytes(),
             key_id: key.id,
+            timestamp,
         };
 
         let node = PreKeyNode {
@@ -722,7 +739,7 @@ pub unsafe extern "C" fn process_with_key_bundle(
         rust_address,
     );
     let mut rust_pre_key = PublicKey::default();
-    if pre_key_id > 0 {
+    if pre_key_id > 0 && !pre_key.is_null() {
         rust_pre_key = PublicKey::from(*pre_key);
     }
     let rust_signed_key = PublicKey::from(*signed_pre_key);
@@ -746,8 +763,19 @@ pub unsafe extern "C" fn process_with_key_bundle(
         identity_key: rust_identity,
     };
     let result = session.process_with_key_bundle(key_bundle);
-    if let Err(_e) = result {
-        return -1 as c_int;
+    if let Err(e) = result {
+        match e {
+            rust::errors::MyError::SessionError { code, name, msg } => {
+                debug!(
+                    "session_cipher_encrypt fail. code:{}, name:{}, msg: {}",
+                    code, name, msg
+                );
+                return code as c_int;
+            }
+            rust::errors::MyError::NoPreKeyException => return -2 as c_int,
+            rust::errors::MyError::NoSignedKeyException => return -3 as c_int,
+            _ => return -100 as c_int,
+        }
     }
 
     0 as c_int
@@ -860,6 +888,10 @@ pub unsafe extern "C" fn session_cipher_decrypt(
     let serialized: &[u8] = slice::from_raw_parts(
         message_buf.data as *const c_uchar,
         message_buf.length as usize,
+    );
+    debug!(
+        "message_type: {}, serialized message: {:?}",
+        message_buf.message_type, serialized
     );
     if message_buf.message_type == 3 {
         let pre_key_message = rust::message::PreKeySignalMessage::deserialize(serialized);
@@ -1138,31 +1170,6 @@ pub extern "C" fn group_process_distribution_message(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn build_session(
-    session: *mut *mut rust::session_builder::SessionBuilder,
-    session_store: *mut dyn rust::store::SessionStore,
-    identity_store: *mut dyn rust::store::IdentityKeyStore,
-    signed_key_store: *mut dyn rust::store::SignedPreKeyStore,
-    pre_key_store: *mut dyn rust::store::PreKeyStore,
-    address: *const Address,
-) -> c_int {
-    //    let name1: Vec<u8> = slice::from_raw_parts((*address).name, (*address).name_len as usize).to_vec();
-    let name1 = CStr::from_ptr((*address).name).to_bytes().to_vec();
-    let name = String::from_utf8_unchecked(name1);
-    let rust_address = rust::address::Address::new(name, (*address).device_id as u64);
-    let session_build = rust::session_builder::SessionBuilder::new(
-        &mut *session_store,
-        &mut *pre_key_store,
-        &mut *signed_key_store,
-        &mut *identity_store,
-        rust_address,
-    );
-    let _ = session.replace(Box::into_raw(Box::new(session_build)));
-
-    0 as c_int
-}
-
-#[no_mangle]
 pub extern "C" fn group_cipher_encode(
     encrypted_message: *mut *mut MessageBuf,
     group_id: *const c_char,
@@ -1321,6 +1328,37 @@ pub extern "C" fn initE2eeSdkLogger(level: *const c_char) -> c_int {
                 .set_time_to_local(true)
                 .build();
             let result = SimpleLogger::init(l, config);
+            if result.is_err() {
+                return -3 as c_int;
+            }
+            return 0 as c_int;
+        }
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn initE2eeSdkLoggerV2(level: *const c_char, file: *const c_char) -> c_int {
+    if level.is_null() || file.is_null() {
+        return -1 as c_int;
+    }
+
+    let level_ret = unsafe { CStr::from_ptr(level).to_str() };
+    let file_ret = unsafe { CStr::from_ptr(file).to_str() };
+    if file_ret.is_err() {
+        return -3 as c_int;
+    }
+    match level_ret {
+        Err(_) => return -2 as c_int,
+        Ok(s) => {
+            let l = LevelFilter::from_str(s).unwrap_or(LevelFilter::Trace);
+            let config = ConfigBuilder::new()
+                .set_time_format_str("%F %T%z")
+                .set_time_to_local(true)
+                .build();
+            let result = CombinedLogger::init(vec![
+                TermLogger::new(l, config.clone(), TerminalMode::Mixed),
+                WriteLogger::new(l, config, File::create(file_ret.unwrap()).unwrap()),
+            ]);
             if result.is_err() {
                 return -3 as c_int;
             }

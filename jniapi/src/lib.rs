@@ -990,7 +990,7 @@ pub extern "system" fn Java_com_blue_baselib_ikey_RustKeyHelper_groupDecrypt(
 unsafe fn JNI_OnLoad(jvm: JavaVM, _reserved: *mut c_void) -> jint {
     android_logger::init_once(
         Config::default()
-            .with_min_level(Level::Debug)
+            .with_min_level(Level::Trace)
             .with_tag("e2ee"),
     );
     info!("Load JNI...");
@@ -1132,7 +1132,7 @@ use rust::session_record::*;
 struct JavaSessionStore;
 impl rust::store::SessionStore for JavaSessionStore {
     fn load_session(&self, address: &Address) -> Result<Option<SessionRecord>, MyError> {
-        trace!("call java loadSession begin");
+        trace!("call java loadSession begin. address: {:?}", address);
         let ptr_jvm = JVM_GLOBAL.lock().unwrap();
         if (*ptr_jvm).is_none() {
             error!("jvm is none");
@@ -1174,22 +1174,23 @@ impl rust::store::SessionStore for JavaSessionStore {
                         msg: "call java loadSession exception".to_string(),
                     });
                 }
-                debug!("call java loadSession: {:?}", call_result);
+                debug!(
+                    "call java loadSession. address: {:?}, result:{:?}",
+                    address, call_result
+                );
                 match call_result {
                     Ok(jvalue) => {
                         debug!("call java loadSession 1");
                         let out = jvalue.l().unwrap().into_inner() as jbyteArray;
                         if out.is_null() {
                             debug!("call java loadSession 3");
-                            return Ok(Some(SessionRecord::default()));
+                            return Ok(None);
                         }
                         debug!("call java loadSession 2");
                         let session = env.convert_byte_array(out);
                         debug!("call java loadSession. session:{:02x?}", session);
-                        Ok(Some(
-                            SessionRecord::deserialize(session.unwrap().as_slice())
-                                .expect("SessionRecord deserialize fail"),
-                        ))
+                        let record = SessionRecord::deserialize(session.unwrap().as_slice())?;
+                        Ok(Some(record))
                     }
                     Err(_e) => {
                         error!("call java loadSession fail");

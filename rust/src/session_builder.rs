@@ -437,14 +437,14 @@ impl<'a> SessionBuilder<'a> {
         }
 
         let session_record_opt = self.session_store.load_session(&self.address)?;
-        if session_record_opt.is_none() {
-            return Err(MyError::SessionError {
-                code: 2023,
-                name: "process with key bundle".to_string(),
-                msg: "load session is none".to_string(),
-            });
-        }
-        let mut session_record = session_record_opt.unwrap();
+        // if session_record_opt.is_none() {
+        //     return Err(MyError::SessionError {
+        //         code: 2023,
+        //         name: "process with key bundle".to_string(),
+        //         msg: "load session is none".to_string(),
+        //     });
+        // }
+        let mut session_record = session_record_opt.unwrap_or(SessionRecord::default());
 
         let our_base_key = KeyPair::generate();
         let mut their_one_time_key: Option<PublicKey> = None;
@@ -558,7 +558,8 @@ impl<'a> SessionBuilder<'a> {
             session_record.promote_state(SessionState::default());
         }
 
-        let mut session_state = SessionState::default();
+        //let mut session_state = SessionState::default();
+        let mut session_state = session_record.clone().get_session_state();
         parameters.init_session(&mut session_state);
         session_state.set_local_registration_id(self.identity_store.get_local_registration_id());
         session_state.set_remote_registration_id(message.registration_id);
@@ -662,14 +663,14 @@ impl<'a> SessionBuilder<'a> {
     ) -> Result<Vec<u8>> {
         trace!("in rust pre_key_message_decrypt. start load session");
         let session_record_opt = self.session_store.load_session(&self.address)?;
-        if session_record_opt.is_none() {
-            return Err(MyError::SessionError {
-                code: 2050,
-                name: "pre key message decrypt".to_string(),
-                msg: "load session is none".to_string(),
-            });
-        }
-        let mut session_record = session_record_opt.unwrap();
+        // if session_record_opt.is_none() {
+        //     return Err(MyError::SessionError {
+        //         code: 2050,
+        //         name: "pre key message decrypt".to_string(),
+        //         msg: "load session is none".to_string(),
+        //     });
+        // }
+        let mut session_record = session_record_opt.unwrap_or(SessionRecord::default());
 
         trace!(
             "in rust pre_key_message_decrypt. end load session: {:?}",
@@ -685,17 +686,167 @@ impl<'a> SessionBuilder<'a> {
         //     });
         // }
 
+        let encrypted = pre_key_message.message;
+
         let mut session_state = session_record.session_state.clone();
+
+        let plain_text_ret = self.decrypt_with_state(&mut session_state, encrypted.clone());
+        if plain_text_ret.is_err() {
+            for (idx, state) in session_record.previous_states.clone().iter().enumerate() {
+                trace!("prekey message decrypt. index:{}, state:{:?}", idx, state);
+                session_state = state.clone();
+                let ret = self.decrypt_with_state(&mut session_state, encrypted.clone());
+                if ret.is_ok() {
+                    self.identity_store.save_identity(
+                        self.address.clone(),
+                        session_state.get_remote_identity_key().unwrap(),
+                    );
+                    // session_record.session_state = session_state;
+                    session_record.remove_previous_state(idx);
+                    session_record.promote_state(session_state);
+                    let _ = self
+                        .session_store
+                        .store_session(self.address.clone(), session_record);
+                    if preid > 0 {
+                        let _ = self.pre_key_store.remove_pre_key(preid);
+                    }
+                    return Ok(ret.unwrap().to_vec());
+                }
+            }
+            return plain_text_ret;
+        } else {
+            self.identity_store.save_identity(
+                self.address.clone(),
+                session_state.get_remote_identity_key().unwrap(),
+            );
+            session_record.session_state = session_state;
+            let _ = self
+                .session_store
+                .store_session(self.address.clone(), session_record);
+            if preid > 0 {
+                let _ = self.pre_key_store.remove_pre_key(preid);
+            }
+            return Ok(plain_text_ret.unwrap().to_vec());
+        }
+        // if !session_state.has_sender_chain() {
+        //     trace!("pre_key_message_decrypt. no sender_chain");
+        //     return Err(MyError::SessionError {
+        //         code: 2052,
+        //         name: "pre key message decrypt".to_string(),
+        //         msg: "no sender chain".to_string(),
+        //     });
+        // }
+
+        // let their_ephemeral = encrypted.sender_ratchet_key;
+        // let counter = encrypted.counter;
+        // // let mut chain_key = ChainKey::default();
+        // let mut chain_key;
+        // if let Some(_receiver_chain) = session_state.get_receiver_chain(&their_ephemeral) {
+        //     chain_key = session_state
+        //         .get_receiver_chain_key(&their_ephemeral)
+        //         .expect("decrypt");
+        //     trace!(
+        //         "pre_key_message_decrypt. chain_key:{:?}, their_ephemeral:{:?}",
+        //         chain_key,
+        //         their_ephemeral
+        //     );
+        // } else {
+        //     let root_key = session_state.get_root_key();
+        //     let our_ephemeral_opt = session_state.get_sender_ratchet_key_pair();
+        //     if our_ephemeral_opt.is_none() {
+        //         return Err(MyError::SessionError {
+        //             code: 2053,
+        //             name: "pre key message decrypt".to_string(),
+        //             msg: "session state get_sender_ratchet_key_pair is none".to_string(),
+        //         });
+        //     }
+        //     let our_ephemeral = our_ephemeral_opt.unwrap();
+        //     let (receiver_root, receiver_chain) =
+        //         root_key.create_chain(&their_ephemeral, &our_ephemeral);
+        //     let our_new_key = KeyPair::generate();
+        //     let (sender_root, sender_chain) =
+        //         receiver_root.create_chain(&their_ephemeral, &our_new_key);
+
+        //     session_state.set_root_key(sender_root);
+        //     session_state.add_receiver_chain(their_ephemeral.clone(), receiver_chain.clone());
+        //     session_state.set_previous_counter(
+        //         std::cmp::max(
+        //             session_state
+        //                 .get_sender_chain_key()
+        //                 .expect("decrypt2")
+        //                 .index,
+        //             1,
+        //         ) - 1,
+        //     );
+        //     session_state.set_sender_chain(our_new_key.clone(), sender_chain);
+
+        //     chain_key = receiver_chain;
+        //     trace!(
+        //         "pre_key_message_decrypt. chain_key2:{:?}, their_ephemeral:{:?}",
+        //         chain_key,
+        //         their_ephemeral
+        //     );
+        // }
+
+        // let message_keys = Self::get_message_keys(
+        //     &mut session_state,
+        //     &their_ephemeral,
+        //     &mut chain_key,
+        //     counter,
+        // )?;
+        // trace!("decrypt message keys: {:?}", message_keys);
+
+        // if session_state.get_remote_identity_key().is_none() {
+        //     return Err(MyError::SessionError {
+        //         code: 2055,
+        //         name: "pre key message decrypt".to_string(),
+        //         msg: "remote identity key is none".to_string(),
+        //     });
+        // }
+
+        // if session_state.get_local_identity_key().is_none() {
+        //     return Err(MyError::SessionError {
+        //         code: 2056,
+        //         name: "pre key message decrypt".to_string(),
+        //         msg: "local identity key is none".to_string(),
+        //     });
+        // }
+
+        // let verify_result = encrypted.verify_mac(
+        //     &session_state.get_remote_identity_key().expect("decrypt3"),
+        //     &session_state.get_local_identity_key().expect("decrypt4"),
+        //     &message_keys.mac_key,
+        // );
+        // trace!("pre_key_message_decrypt. verify_result:{:?}", verify_result);
+        // if verify_result.is_err() {
+        //     return Err(MyError::SessionError {
+        //         code: 2054,
+        //         name: "pre key message decrypt".to_string(),
+        //         msg: "verify mac error".to_string(),
+        //     });
+        // }
+
+        // let mut body = encrypted.ciphertext;
+        // let plain_text =
+        //     aes256_cbc_pkcs7_decrypt(&message_keys.cipher_key, &message_keys.iv, &mut body)?;
+
+        // session_state.clear_unknown_pre_key_message();
+    }
+
+    fn decrypt_with_state(
+        &mut self,
+        session_state: &mut SessionState,
+        encrypted: SignalMessage,
+    ) -> Result<Vec<u8>> {
+        trace!("decrypt_with_state. session_state:{:?}", session_state);
         if !session_state.has_sender_chain() {
-            trace!("pre_key_message_decrypt. no sender_chain");
+            trace!("decrypt_with_state. no sender_chain");
             return Err(MyError::SessionError {
                 code: 2052,
-                name: "pre key message decrypt".to_string(),
+                name: "decrypt_with_state".to_string(),
                 msg: "no sender chain".to_string(),
             });
         }
-
-        let encrypted = pre_key_message.message;
 
         let their_ephemeral = encrypted.sender_ratchet_key;
         let counter = encrypted.counter;
@@ -706,7 +857,7 @@ impl<'a> SessionBuilder<'a> {
                 .get_receiver_chain_key(&their_ephemeral)
                 .expect("decrypt");
             trace!(
-                "pre_key_message_decrypt. chain_key:{:?}, their_ephemeral:{:?}",
+                "decrypt_with_state. chain_key:{:?}, their_ephemeral:{:?}",
                 chain_key,
                 their_ephemeral
             );
@@ -716,7 +867,7 @@ impl<'a> SessionBuilder<'a> {
             if our_ephemeral_opt.is_none() {
                 return Err(MyError::SessionError {
                     code: 2053,
-                    name: "pre key message decrypt".to_string(),
+                    name: "decrypt_with_state".to_string(),
                     msg: "session state get_sender_ratchet_key_pair is none".to_string(),
                 });
             }
@@ -742,24 +893,20 @@ impl<'a> SessionBuilder<'a> {
 
             chain_key = receiver_chain;
             trace!(
-                "pre_key_message_decrypt. chain_key2:{:?}, their_ephemeral:{:?}",
+                "decrypt_with_state. chain_key2:{:?}, their_ephemeral:{:?}",
                 chain_key,
                 their_ephemeral
             );
         }
 
-        let message_keys = Self::get_message_keys(
-            &mut session_state,
-            &their_ephemeral,
-            &mut chain_key,
-            counter,
-        )?;
+        let message_keys =
+            Self::get_message_keys(session_state, &their_ephemeral, &mut chain_key, counter)?;
         trace!("decrypt message keys: {:?}", message_keys);
 
         if session_state.get_remote_identity_key().is_none() {
             return Err(MyError::SessionError {
                 code: 2055,
-                name: "pre key message decrypt".to_string(),
+                name: "decrypt_with_state".to_string(),
                 msg: "remote identity key is none".to_string(),
             });
         }
@@ -767,7 +914,7 @@ impl<'a> SessionBuilder<'a> {
         if session_state.get_local_identity_key().is_none() {
             return Err(MyError::SessionError {
                 code: 2056,
-                name: "pre key message decrypt".to_string(),
+                name: "decrypt_with_state".to_string(),
                 msg: "local identity key is none".to_string(),
             });
         }
@@ -777,11 +924,11 @@ impl<'a> SessionBuilder<'a> {
             &session_state.get_local_identity_key().expect("decrypt4"),
             &message_keys.mac_key,
         );
-        trace!("pre_key_message_decrypt. verify_result:{:?}", verify_result);
+        trace!("decrypt_with_state. verify_result:{:?}", verify_result);
         if verify_result.is_err() {
             return Err(MyError::SessionError {
                 code: 2054,
-                name: "pre key message decrypt".to_string(),
+                name: "decrypt_with_state".to_string(),
                 msg: "verify mac error".to_string(),
             });
         }
@@ -791,17 +938,6 @@ impl<'a> SessionBuilder<'a> {
             aes256_cbc_pkcs7_decrypt(&message_keys.cipher_key, &message_keys.iv, &mut body)?;
 
         session_state.clear_unknown_pre_key_message();
-
-        self.identity_store.save_identity(
-            self.address.clone(),
-            session_state.get_remote_identity_key().unwrap(),
-        );
-        session_record.session_state = session_state;
-        let _ = self
-            .session_store
-            .store_session(self.address.clone(), session_record);
-
-        let _ = self.pre_key_store.remove_pre_key(preid);
 
         Ok(plain_text.to_vec())
     }
@@ -847,112 +983,146 @@ impl<'a> SessionBuilder<'a> {
 
         trace!("in rust decrypt. after load session: {:?}", session_record);
         let mut session_state = session_record.session_state.clone();
-        if !session_state.has_sender_chain() {
-            trace!("in rust decrypt. no sender chain");
-            return Err(MyError::SessionError {
-                code: 2064,
-                name: "message decrypt".to_string(),
-                msg: "no sender chain".to_string(),
-            });
-        }
 
-        let their_ephemeral = encrypted.sender_ratchet_key;
-        let counter = encrypted.counter;
-        // let mut chain_key = ChainKey::default();
-        let mut chain_key;
-        if let Some(_receiver_chain) = session_state.get_receiver_chain(&their_ephemeral) {
-            trace!("in rust decrypt. no sender chain");
-            chain_key = session_state
-                .get_receiver_chain_key(&their_ephemeral)
-                .expect("decrypt");
-        } else {
-            println!("decrypt14");
-            let root_key = session_state.get_root_key();
-            let our_ephemeral_opt = session_state.get_sender_ratchet_key_pair();
-            if our_ephemeral_opt.is_none() {
-                return Err(MyError::SessionError {
-                    code: 2065,
-                    name: "message decrypt".to_string(),
-                    msg: "session state get_sender_ratchet_key_pair is none".to_string(),
-                });
+        let plain_text_ret = self.decrypt_with_state(&mut session_state, encrypted.clone());
+        if plain_text_ret.is_err() {
+            for (idx, state) in session_record.previous_states.clone().iter().enumerate() {
+                trace!("decrypt. index:{}, state:{:?}", idx, state);
+                session_state = state.clone();
+                let ret = self.decrypt_with_state(&mut session_state, encrypted.clone());
+                if ret.is_ok() {
+                    self.identity_store.save_identity(
+                        self.address.clone(),
+                        session_state.get_remote_identity_key().unwrap(),
+                    );
+                    // session_record.session_state = session_state;
+                    session_record.remove_previous_state(idx);
+                    session_record.promote_state(session_state);
+                    let _ = self
+                        .session_store
+                        .store_session(self.address.clone(), session_record);
+                    return Ok(ret.unwrap().to_vec());
+                }
             }
-            let our_ephemeral = our_ephemeral_opt.unwrap();
-            let (receiver_root, receiver_chain) =
-                root_key.create_chain(&their_ephemeral, &our_ephemeral);
-            let our_new_key = KeyPair::generate();
-            let (sender_root, sender_chain) =
-                receiver_root.create_chain(&their_ephemeral, &our_new_key);
-
-            session_state.set_root_key(sender_root);
-            session_state.add_receiver_chain(their_ephemeral.clone(), receiver_chain.clone());
-            session_state.set_previous_counter(
-                std::cmp::max(
-                    session_state
-                        .get_sender_chain_key()
-                        .expect("decrypt2")
-                        .index,
-                    1,
-                ) - 1,
+            return plain_text_ret;
+        } else {
+            self.identity_store.save_identity(
+                self.address.clone(),
+                session_state.get_remote_identity_key().unwrap(),
             );
-            session_state.set_sender_chain(our_new_key.clone(), sender_chain);
+            session_record.session_state = session_state;
+            let _ = self
+                .session_store
+                .store_session(self.address.clone(), session_record)?;
 
-            chain_key = receiver_chain;
+            Ok(plain_text_ret.unwrap().to_vec())
         }
+        // if !session_state.has_sender_chain() {
+        //     trace!("in rust decrypt. no sender chain");
+        //     return Err(MyError::SessionError {
+        //         code: 2064,
+        //         name: "message decrypt".to_string(),
+        //         msg: "no sender chain".to_string(),
+        //     });
+        // }
 
-        trace!("decrypt get message keys before: {:02x?}, their_ephemeral:{:02x?}, chain_key:{:02x?}, counter:{}", session_state, their_ephemeral, chain_key, counter);
-        let message_keys = Self::get_message_keys(
-            &mut session_state,
-            &their_ephemeral,
-            &mut chain_key,
-            counter,
-        )?;
-        trace!("decrypt message keys: {:?}", message_keys);
+        // let their_ephemeral = encrypted.sender_ratchet_key;
+        // let counter = encrypted.counter;
+        // // let mut chain_key = ChainKey::default();
+        // let mut chain_key;
+        // if let Some(_receiver_chain) = session_state.get_receiver_chain(&their_ephemeral) {
+        //     trace!("in rust decrypt. no sender chain");
+        //     chain_key = session_state
+        //         .get_receiver_chain_key(&their_ephemeral)
+        //         .expect("decrypt");
+        // } else {
+        //     println!("decrypt14");
+        //     let root_key = session_state.get_root_key();
+        //     let our_ephemeral_opt = session_state.get_sender_ratchet_key_pair();
+        //     if our_ephemeral_opt.is_none() {
+        //         return Err(MyError::SessionError {
+        //             code: 2065,
+        //             name: "message decrypt".to_string(),
+        //             msg: "session state get_sender_ratchet_key_pair is none".to_string(),
+        //         });
+        //     }
+        //     let our_ephemeral = our_ephemeral_opt.unwrap();
+        //     let (receiver_root, receiver_chain) =
+        //         root_key.create_chain(&their_ephemeral, &our_ephemeral);
+        //     let our_new_key = KeyPair::generate();
+        //     let (sender_root, sender_chain) =
+        //         receiver_root.create_chain(&their_ephemeral, &our_new_key);
 
-        if session_state.get_remote_identity_key().is_none() {
-            return Err(MyError::SessionError {
-                code: 2066,
-                name: "message decrypt".to_string(),
-                msg: "remote identity key is none".to_string(),
-            });
-        }
+        //     session_state.set_root_key(sender_root);
+        //     session_state.add_receiver_chain(their_ephemeral.clone(), receiver_chain.clone());
+        //     session_state.set_previous_counter(
+        //         std::cmp::max(
+        //             session_state
+        //                 .get_sender_chain_key()
+        //                 .expect("decrypt2")
+        //                 .index,
+        //             1,
+        //         ) - 1,
+        //     );
+        //     session_state.set_sender_chain(our_new_key.clone(), sender_chain);
 
-        if session_state.get_local_identity_key().is_none() {
-            return Err(MyError::SessionError {
-                code: 2066,
-                name: "message decrypt".to_string(),
-                msg: "local identity key is none".to_string(),
-            });
-        }
+        //     chain_key = receiver_chain;
+        // }
 
-        let verify_result = encrypted.verify_mac(
-            &session_state.get_remote_identity_key().expect("decrypt3"),
-            &session_state.get_local_identity_key().expect("decrypt4"),
-            &message_keys.mac_key,
-        );
-        if verify_result.is_err() {
-            return Err(MyError::SessionError {
-                code: 2065,
-                name: "message decrypt".to_string(),
-                msg: "verify mac error".to_string(),
-            });
-        }
+        // trace!("decrypt get message keys before: {:02x?}, their_ephemeral:{:02x?}, chain_key:{:02x?}, counter:{}", session_state, their_ephemeral, chain_key, counter);
+        // let message_keys = Self::get_message_keys(
+        //     &mut session_state,
+        //     &their_ephemeral,
+        //     &mut chain_key,
+        //     counter,
+        // )?;
+        // trace!("decrypt message keys: {:?}", message_keys);
 
-        let mut body = encrypted.ciphertext;
-        let plain_text =
-            aes256_cbc_pkcs7_decrypt(&message_keys.cipher_key, &message_keys.iv, &mut body)?;
+        // if session_state.get_remote_identity_key().is_none() {
+        //     return Err(MyError::SessionError {
+        //         code: 2066,
+        //         name: "message decrypt".to_string(),
+        //         msg: "remote identity key is none".to_string(),
+        //     });
+        // }
 
-        session_state.clear_unknown_pre_key_message();
+        // if session_state.get_local_identity_key().is_none() {
+        //     return Err(MyError::SessionError {
+        //         code: 2066,
+        //         name: "message decrypt".to_string(),
+        //         msg: "local identity key is none".to_string(),
+        //     });
+        // }
 
-        self.identity_store.save_identity(
-            self.address.clone(),
-            session_state.get_remote_identity_key().unwrap(),
-        );
-        session_record.session_state = session_state;
-        let _ = self
-            .session_store
-            .store_session(self.address.clone(), session_record)?;
+        // let verify_result = encrypted.verify_mac(
+        //     &session_state.get_remote_identity_key().expect("decrypt3"),
+        //     &session_state.get_local_identity_key().expect("decrypt4"),
+        //     &message_keys.mac_key,
+        // );
+        // if verify_result.is_err() {
+        //     return Err(MyError::SessionError {
+        //         code: 2065,
+        //         name: "message decrypt".to_string(),
+        //         msg: "verify mac error".to_string(),
+        //     });
+        // }
 
-        Ok(plain_text.to_vec())
+        // let mut body = encrypted.ciphertext;
+        // let plain_text =
+        //     aes256_cbc_pkcs7_decrypt(&message_keys.cipher_key, &message_keys.iv, &mut body)?;
+
+        // session_state.clear_unknown_pre_key_message();
+
+        // self.identity_store.save_identity(
+        //     self.address.clone(),
+        //     session_state.get_remote_identity_key().unwrap(),
+        // );
+        // session_record.session_state = session_state;
+        // let _ = self
+        //     .session_store
+        //     .store_session(self.address.clone(), session_record)?;
+
+        // Ok(plain_text.to_vec())
     }
 
     fn get_message_keys(

@@ -5,7 +5,7 @@ use curve_crypto::{KeyPair, PublicKey};
 use prost::Message;
 use std::io::Cursor;
 
-const ARCHIVED_STATES_MAX_LENGTH: usize = 2000;
+const ARCHIVED_STATES_MAX_LENGTH: usize = 40;
 
 #[derive(Debug, Clone, Default)]
 pub struct SenderKeyRecord {
@@ -99,11 +99,21 @@ impl SenderKeyRecord {
     }
 }
 
-#[derive(Debug, Clone, Default, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct SessionRecord {
     pub session_state: SessionState,
     pub previous_states: Vec<SessionState>,
     pub fresh: bool,
+}
+
+impl Default for SessionRecord {
+    fn default() -> Self {
+        Self {
+            session_state: SessionState::default(),
+            previous_states: vec![],
+            fresh: true,
+        }
+    }
 }
 
 impl SessionRecord {
@@ -202,6 +212,10 @@ impl SessionRecord {
         if self.previous_states.len() > ARCHIVED_STATES_MAX_LENGTH {
             self.previous_states.pop();
         }
+    }
+
+    pub fn remove_previous_state(&mut self, idx: usize) {
+        self.previous_states.remove(idx);
     }
 
     pub fn serialize(&self) -> Vec<u8> {
