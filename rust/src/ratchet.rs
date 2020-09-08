@@ -17,12 +17,6 @@ impl RootKey {
         our_ratchet_key: &KeyPair,
     ) -> (RootKey, ChainKey) {
         let shared_secret = our_ratchet_key.private.dh(their_ratchet_key);
-        println!(
-            "dh shared_secret: {:02x?}, our_ratchet_key:{:02x?}, their_rathcet_key:{:02x?}",
-            shared_secret.as_bytes(),
-            our_ratchet_key,
-            their_ratchet_key
-        );
         let (_prk, hk) =
             Hkdf::<Sha256>::extract(Some(self.key.as_slice()), shared_secret.as_bytes());
         let mut derived_secrets = [0u8; 64];
@@ -346,19 +340,11 @@ impl AliceParameters {
             );
         }
 
-        println!(
-            "alice_secrets: {:02x?}, our_base_key:{:02x?}, their_one_time:{:02x?}",
-            secrets.clone(),
-            self.our_base_key,
-            self.their_one_time_key
-        );
-
         let (_prk, hk) = Hkdf::<Sha256>::extract(None, secrets.as_slice());
         let mut derived_secrets = [0u8; 64];
         hk.expand("MatrixText".as_bytes(), &mut derived_secrets)
             .expect("HKDF error");
         let (first, second) = derived_secrets.split_at(32);
-        //println!("alice_derived_secrets: {:x?}, {:x?}", first, second);
         let root: RootKey = first.into();
         let (root_key, chain_key) =
             root.create_chain(&self.their_ratchet_key, &sending_ratchet_key);
@@ -366,7 +352,6 @@ impl AliceParameters {
         session.add_receiver_chain(self.their_ratchet_key, ChainKey::new(second, 0));
         session.set_sender_chain(sending_ratchet_key, chain_key);
         session.set_root_key(root_key);
-        println!("session111: {:?}", session);
     }
 }
 
@@ -458,7 +443,6 @@ impl BobParameters {
         hk.expand("MatrixText".as_bytes(), &mut derived_secrets)
             .expect("HKDF error");
         let (first, second) = derived_secrets.split_at(32);
-        //        println!("bob_derived_secrets: {:x?} {:x?}", first, second);
 
         session.set_sender_chain(self.our_ratchet_key.clone(), ChainKey::new(second, 0));
         session.set_root_key(first.into());

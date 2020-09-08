@@ -545,7 +545,6 @@ impl SenderKeyState {
         for mk in &self.sender_key_structure.sender_message_keys {
             if mk.iteration.expect("prost decode 35") == iteration {
                 let key = self.sender_key_structure.sender_message_keys.remove(i);
-                println!("1111key:{:02x?}", key);
                 return Some(SenderMessageKeys::new(
                     key.iteration.expect("prost decode 36"),
                     key.seed.expect("prost decode 37"),

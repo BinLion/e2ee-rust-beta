@@ -42,11 +42,9 @@ impl SignalMessage {
         buf.reserve(message.encoded_len());
         message.encode(&mut buf).unwrap();
         let len = buf.len();
-        //        println!("serialized: {:?}", buf);
 
         let version_byte: u8 = (3 << 4 | 3) & 0xFF;
         buf.insert(0, version_byte);
-        //        println!("serialized1: {:?}", buf);
 
         let mut mac = SignalMessage::get_mac(
             &sender_identity_key,
@@ -66,7 +64,6 @@ impl SignalMessage {
         serialized.append(&mut mac);
         //serialized[0..len].copy_from_slice(&buf);
         //serialized[len..len+8].copy_from_slice(&mac[0..8]);
-        //        println!("serialized2: {:?}", serialized);
         Self {
             version: 3,
             sender_ratchet_key: sender_key,

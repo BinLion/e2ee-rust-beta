@@ -17,7 +17,6 @@ impl SenderKeyRecord {
         match crate::storage_proto::SenderKeyRecordStructure::decode(&mut Cursor::new(buf)) {
             Err(e) => Err(e),
             Ok(states) => {
-                println!("states: {:?}", states);
                 let mut sender_key_states = Vec::new();
                 for state in states.sender_key_states {
                     let sender_state = SenderKeyState::new(state);

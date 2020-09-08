@@ -1127,6 +1127,41 @@ pub extern "system" fn Java_com_blue_baselib_ikey_RustKeyHelper_newAddress(
     Box::into_raw(Box::new(address)) as jlong
 }
 
+pub extern "system" fn Java_com_blue_baselib_ikey_RustKeyHelper_hasSenderChain(
+    env: JNIEnv,
+    _: JClass,
+    name: JString,
+    device_id: i32,
+) -> jboolean {
+    let name: String = env
+        .get_string(name)
+        .expect("Couldn't get java name!")
+        .into();
+
+    let address = rust::address::Address::new(name, device_id as u64);
+
+    let mut session_store = JavaSessionStore {};
+    let mut pre_key_store = JavaPreKeyStore {};
+    let mut signed_key_store = JavaSignedKeyStore {};
+    let mut identity_store = JavaIdentityStore {};
+    let session = rust::session_builder::SessionBuilder::new(
+        &mut session_store,
+        &mut pre_key_store,
+        &mut signed_key_store,
+        &mut identity_store,
+        address,
+    );
+
+    let ret = session.has_sender_chain();
+    if ret.is_err() {
+        return 0;
+    }
+
+    let has = ret.unwrap();
+
+    has as jboolean
+}
+
 use rust::address::*;
 use rust::session_record::*;
 struct JavaSessionStore;

@@ -119,7 +119,6 @@ impl rust::store::SenderKeyStore for CSenderKeyStore {
         //        let group_id = unsafe {
         //            CStr::from_bytes_with_nul_unchecked(sender.group_id.as_bytes())
         //        };
-        //        println!("load_sender_key. group:{:02x?}", group_id.to_bytes_with_nul());
 
         let key = unsafe {
             debug!("c_load_sender_key1. c_address: {:?}", c_address);
@@ -405,11 +404,9 @@ impl rust::store::PreKeyStore for CPreKeyStore {
         unimplemented!()
     }
 
-    // no use
     fn remove_pre_key(&mut self, id: u32) {
         unsafe {
-            let ret = c_remove_pre_key(id);
-            println!("c_remove_pre_key result:{}", ret);
+            let _ = c_remove_pre_key(id);
         }
     }
 }
@@ -807,7 +804,6 @@ pub unsafe extern "C" fn session_cipher_encrypt(
     let cstr = CStr::from_ptr(plain_text);
     debug!("session_cipher_encrypt. cstr: {:?}", cstr);
     //    let text_old = cstr.to_str().expect("CStr from_ptr error");
-    //    println!("session_cipher_encrypt. text_old: {:?}", text_old);
     let text = slice::from_raw_parts(plain_text as *const c_uchar, text_len as usize).to_vec();
     //    let v = &[0u8, 10];
     debug!("session_cipher_encrypt. text: {:?}", text);
@@ -1365,4 +1361,25 @@ pub extern "C" fn initE2eeSdkLoggerV2(level: *const c_char, file: *const c_char)
             return 0 as c_int;
         }
     }
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn has_sender_chain(address: *const Address) -> bool {
+    let name1 = CStr::from_ptr((*address).name).to_bytes().to_vec();
+    let name = String::from_utf8_unchecked(name1);
+    let rust_address = rust::address::Address::new(name, (*address).device_id as u64);
+    debug!("address: {:?}", rust_address);
+    let mut session_store = CSessionStore {};
+    let mut pre_key_store = CPreKeyStore {};
+    let mut signed_key_store = CSignedKeyStore {};
+    let mut identity_store = CIdentityStore {};
+    let session = rust::session_builder::SessionBuilder::new(
+        &mut session_store,
+        &mut pre_key_store,
+        &mut signed_key_store,
+        &mut identity_store,
+        rust_address,
+    );
+
+    session.has_sender_chain().unwrap_or(false)
 }

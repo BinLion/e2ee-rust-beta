@@ -197,8 +197,6 @@ impl<'a> GroupSessionBuilder<'a> {
                         );
                         status.set_sender_chain_key(status.get_sender_chain_key().next());
                         record.reset_sender_key_state(status.clone());
-                        //                        println!("record before set sender chain key:{:02x?}", record);
-                        //                        println!("record after set sender chain key:{:02x?}", status);
 
                         self.sender_key_store
                             .store_sender_key(self.sender.clone(), record.clone());
@@ -254,30 +252,6 @@ impl<'a> GroupSessionBuilder<'a> {
 
                         let message_keys = Self::get_message_keys(&mut state, message.iteration)?;
 
-                        //                        let mut chain_key = state.get_sender_chain_key();
-                        //                        let mut message_keys = SenderMessageKeys::default();
-                        //                        if chain_key.iteration > message.iteration {
-                        //                            if state.has_sender_message_key(message.iteration) {
-                        //                                message_keys = state.remove_sender_message_key(message.iteration).unwrap();
-                        //                            } else {
-                        //                                println!("group decrypt. received message with old counter");
-                        //                                return Err(Error);
-                        //                            }
-                        //                        }
-                        //
-                        //                        if message.iteration > chain_key.iteration + 2000 {
-                        //                            println!("group decrypt. Over 2000 messages into the future");
-                        //                            return Err(Error);
-                        //                        }
-                        //
-                        //                        while chain_key.iteration < message.iteration {
-                        //                            state.add_sender_message_key(chain_key.get_message_keys());
-                        //                            chain_key = chain_key.next();
-                        //                            message_keys = chain_key.get_message_keys();
-                        //                        }
-                        //
-                        //                        state.set_sender_chain_key(chain_key.next());
-                        //                        message_keys = chain_key.get_message_keys();
                         record.reset_sender_key_state(state.clone());
 
                         debug!(
@@ -1177,6 +1151,13 @@ impl<'a> SessionBuilder<'a> {
         session_state.set_receiver_chain_key(&their_ephemeral, chain_key.next());
         message_keys = chain_key.get_message_keys();
         Ok(message_keys)
+    }
+
+    pub fn has_sender_chain(&self) -> Result<bool> {
+        let session_record_opt = self.session_store.load_session(&self.address)?;
+        session_record_opt.map_or(Ok(false), |record| {
+            Ok(record.get_session_state().has_sender_chain())
+        })
     }
 }
 

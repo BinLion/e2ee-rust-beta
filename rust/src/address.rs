@@ -64,7 +64,6 @@ mod test {
     use super::*;
     #[test]
     fn new_address() {
-        let address = Address::new("test".to_string(), 123);
-        println!("address: {:?}", address)
+        let _address = Address::new("test".to_string(), 123);
     }
 }

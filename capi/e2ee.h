@@ -113,6 +113,8 @@ int group_process_distribution_message(const struct MessageBuf *distribution_mes
                                        unsigned int group_len,
                                        const struct Address *address);
 
+bool has_sender_chain(const struct Address *address);
+
 int initE2eeSdkLogger(const char *level);
 
 int initE2eeSdkLoggerV2(const char *level, const char *file);
