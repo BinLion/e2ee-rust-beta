@@ -15,6 +15,7 @@ struct Address {
   char *name;
   unsigned int name_len;
   int device_id;
+  int device_type;
 };
 
 struct DataWrap {
@@ -75,7 +76,11 @@ int curve_verify_signature(const unsigned char (*public_key)[32],
 
 void free_address(const struct Address *address);
 
-int generate_address(struct Address **address, char *name, unsigned int name_len, int id);
+int generate_address(struct Address **address,
+                     char *name,
+                     unsigned int name_len,
+                     int id,
+                     int device_type);
 
 int generate_buf(struct DataWrap **buf, const char *data, unsigned int length);
 

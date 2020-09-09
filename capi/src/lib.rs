@@ -72,6 +72,7 @@ impl rust::store::SenderKeyStore for CSenderKeyStore {
                 .into_raw(),
             name_len: sender.sender.name.len() as c_uint,
             device_id: sender.sender.device_id as i32,
+            device_type: sender.sender.device_type as i32,
         };
         let group_id =
             CString::new(sender.group_id.clone()).expect("CString::new(group_id) failed.");
@@ -109,6 +110,7 @@ impl rust::store::SenderKeyStore for CSenderKeyStore {
                 .into_raw(),
             name_len: sender.sender.name.len() as c_uint,
             device_id: sender.sender.device_id as i32,
+            device_type: sender.sender.device_type as i32,
         };
         let group_id =
             CString::new(sender.group_id.clone()).expect("CString::new(group_id) failed.");
@@ -161,6 +163,7 @@ impl rust::store::SessionStore for CSessionStore {
                 .into_raw(),
             name_len: address.name.len() as c_uint,
             device_id: address.device_id as i32,
+            device_type: address.device_type as i32,
         };
         debug!("c_load_session. address: {:?}", c_address);
         //let session = unsafe { c_load_session(&c_address) };
@@ -199,6 +202,7 @@ impl rust::store::SessionStore for CSessionStore {
                 .into_raw(),
             name_len: address.name.len() as c_uint,
             device_id: address.device_id as i32,
+            device_type: address.device_type as i32,
         };
 
         let buf = session.serialize();
@@ -281,6 +285,7 @@ impl rust::store::IdentityKeyStore for CIdentityStore {
                 .into_raw(),
             name_len: address.name.len() as c_uint,
             device_id: address.device_id as i32,
+            device_type: address.device_type as i32,
         };
         // let data = EcPublicKey {
         //     data: identity.to_bytes(),
@@ -300,6 +305,7 @@ impl rust::store::IdentityKeyStore for CIdentityStore {
                 .into_raw(),
             name_len: address.name.len() as c_uint,
             device_id: address.device_id as i32,
+            device_type: address.device_type as i32,
         };
         unsafe {
             let identity = c_get_identity(&c_address);
@@ -324,6 +330,7 @@ impl rust::store::IdentityKeyStore for CIdentityStore {
                 .into_raw(),
             name_len: address.name.len() as c_uint,
             device_id: address.device_id as i32,
+            device_type: address.device_type as i32,
         };
         // let data = EcPublicKey {
         //     data: identity_key.to_bytes(),
@@ -386,6 +393,7 @@ impl rust::store::PreKeyStore for CPreKeyStore {
                 private: key.private_key.into(),
                 public: key.public_key.into(),
             };
+            debug!("load_pre_key. id:{}, pair: {:?}", id, key_pair);
             let rust_key = rust::keys::PreKey {
                 id: key.key_id,
                 keypair: key_pair,
@@ -503,6 +511,7 @@ pub struct Address {
     pub name: *mut c_char,
     pub name_len: c_uint,
     pub device_id: c_int,
+    pub device_type: c_int,
 }
 
 #[no_mangle]
@@ -511,11 +520,13 @@ pub unsafe extern "C" fn generate_address(
     name: *mut c_char,
     name_len: c_uint,
     id: c_int,
+    device_type: c_int,
 ) -> c_int {
     let a = Address {
         name,
         name_len,
         device_id: id,
+        device_type,
     };
     let _ = address.replace(Box::into_raw(Box::new(a)));
     0 as c_int
@@ -525,7 +536,11 @@ pub unsafe extern "C" fn generate_address(
 pub unsafe extern "C" fn free_address(address: *const Address) {
     let name1 = CStr::from_ptr((*address).name).to_bytes().to_vec();
     let name = String::from_utf8_unchecked(name1);
-    let rust_address = rust::address::Address::new(name, (*address).device_id as u64);
+    let rust_address = rust::address::Address::new(
+        name,
+        (*address).device_id as u64,
+        (*address).device_type as u32,
+    );
     debug!("address: {:?}", rust_address);
 }
 
@@ -722,7 +737,11 @@ pub unsafe extern "C" fn process_with_key_bundle(
     //    let name1: Vec<u8> = slice::from_raw_parts((*address).name, (*address).name_len as usize).to_vec();
     let name1 = CStr::from_ptr((*address).name).to_bytes().to_vec();
     let name = String::from_utf8_unchecked(name1);
-    let rust_address = rust::address::Address::new(name, (*address).device_id as u64);
+    let rust_address = rust::address::Address::new(
+        name,
+        (*address).device_id as u64,
+        (*address).device_type as u32,
+    );
     debug!("address: {:?}", rust_address);
     let mut session_store = CSessionStore {};
     let mut pre_key_store = CPreKeyStore {};
@@ -788,7 +807,11 @@ pub unsafe extern "C" fn session_cipher_encrypt(
     //    let name1: Vec<u8> = slice::from_raw_parts((*address).name, (*address).name_len as usize).to_vec();
     let name1 = CStr::from_ptr((*address).name).to_bytes().to_vec();
     let name = String::from_utf8_unchecked(name1);
-    let rust_address = rust::address::Address::new(name, (*address).device_id as u64);
+    let rust_address = rust::address::Address::new(
+        name,
+        (*address).device_id as u64,
+        (*address).device_type as u32,
+    );
     debug!("address: {:?}", rust_address);
     let mut session_store = CSessionStore {};
     let mut pre_key_store = CPreKeyStore {};
@@ -866,7 +889,11 @@ pub unsafe extern "C" fn session_cipher_decrypt(
 ) -> c_int {
     let name1 = CStr::from_ptr((*address).name).to_bytes().to_vec();
     let name = String::from_utf8_unchecked(name1);
-    let rust_address = rust::address::Address::new(name, (*address).device_id as u64);
+    let rust_address = rust::address::Address::new(
+        name,
+        (*address).device_id as u64,
+        (*address).device_type as u32,
+    );
     debug!("address: {:?}", rust_address);
     let message_buf = &*encrypted_message;
     let mut session_store = CSessionStore {};
@@ -978,7 +1005,11 @@ pub extern "C" fn group_create_distribution_message(
     let name1 = unsafe { CStr::from_ptr((*address).name).to_bytes().to_vec() };
     let name = unsafe { String::from_utf8_unchecked(name1) };
     //    let name = unsafe {String::from_raw_parts(c_address.name as *mut c_uchar, c_address.name_len as usize, c_address.name_len as usize)};
-    let rust_address = rust::address::Address::new(name, c_address.device_id as u64);
+    let rust_address = rust::address::Address::new(
+        name,
+        c_address.device_id as u64,
+        c_address.device_type as u32,
+    );
 
     //    let group= unsafe {String::from_raw_parts(group_id as *mut c_uchar,group_len as usize, group_len as usize)};
     let parts = unsafe { slice::from_raw_parts(group_id as *const c_uchar, group_len as usize) };
@@ -1052,7 +1083,11 @@ pub extern "C" fn group_get_distribution_message(
     let name1 = unsafe { CStr::from_ptr((*address).name).to_bytes().to_vec() };
     let name = unsafe { String::from_utf8_unchecked(name1) };
     //    let name = unsafe {String::from_raw_parts(c_address.name as *mut c_uchar, c_address.name_len as usize, c_address.name_len as usize)};
-    let rust_address = rust::address::Address::new(name, c_address.device_id as u64);
+    let rust_address = rust::address::Address::new(
+        name,
+        c_address.device_id as u64,
+        c_address.device_type as u32,
+    );
 
     //    let group= unsafe {String::from_raw_parts(group_id as *mut c_uchar,group_len as usize, group_len as usize)};
     let parts = unsafe { slice::from_raw_parts(group_id as *const c_uchar, group_len as usize) };
@@ -1124,7 +1159,11 @@ pub extern "C" fn group_process_distribution_message(
     let name1 = unsafe { CStr::from_ptr((*address).name).to_bytes().to_vec() };
     let name = unsafe { String::from_utf8_unchecked(name1) };
     //    let name = unsafe {String::from_raw_parts(c_address.name as *mut c_uchar, c_address.name_len as usize, c_address.name_len as usize)};
-    let rust_address = rust::address::Address::new(name, c_address.device_id as u64);
+    let rust_address = rust::address::Address::new(
+        name,
+        c_address.device_id as u64,
+        c_address.device_type as u32,
+    );
     //    let group= unsafe {String::from_raw_parts(group_id as *mut c_uchar,group_len as usize, group_len as usize)};
     let parts = unsafe { slice::from_raw_parts(group_id as *const c_uchar, group_len as usize) };
     let group = unsafe { String::from_utf8_unchecked(parts.to_vec()) };
@@ -1196,7 +1235,11 @@ pub extern "C" fn group_cipher_encode(
     let name1 = unsafe { CStr::from_ptr((*address).name).to_bytes().to_vec() };
     let name = unsafe { String::from_utf8_unchecked(name1) };
     //    let name = unsafe {String::from_raw_parts(c_address.name as *mut c_uchar, c_address.name_len as usize, c_address.name_len as usize)};
-    let rust_address = rust::address::Address::new(name, c_address.device_id as u64);
+    let rust_address = rust::address::Address::new(
+        name,
+        c_address.device_id as u64,
+        c_address.device_type as u32,
+    );
     //    let group= unsafe {String::from_raw_parts(group_id as *mut c_uchar,group_len as usize, group_len as usize)};
     let parts = unsafe { slice::from_raw_parts(group_id as *const c_uchar, group_len as usize) };
     let group = unsafe { String::from_utf8_unchecked(parts.to_vec()) };
@@ -1262,7 +1305,11 @@ pub extern "C" fn group_cipher_decode(
     let name1 = unsafe { CStr::from_ptr((*address).name).to_bytes().to_vec() };
     let name = unsafe { String::from_utf8_unchecked(name1) };
     //    let name = unsafe {String::from_raw_parts(c_address.name as *mut c_uchar, c_address.name_len as usize, c_address.name_len as usize)};
-    let rust_address = rust::address::Address::new(name, c_address.device_id as u64);
+    let rust_address = rust::address::Address::new(
+        name,
+        c_address.device_id as u64,
+        c_address.device_type as u32,
+    );
     //    let group= unsafe {String::from_raw_parts(group_id as *mut c_uchar,group_len as usize, group_len as usize)};
     let parts = unsafe { slice::from_raw_parts(group_id as *const c_uchar, group_len as usize) };
     let group = unsafe { String::from_utf8_unchecked(parts.to_vec()) };
@@ -1367,7 +1414,11 @@ pub extern "C" fn initE2eeSdkLoggerV2(level: *const c_char, file: *const c_char)
 pub unsafe extern "C" fn has_sender_chain(address: *const Address) -> bool {
     let name1 = CStr::from_ptr((*address).name).to_bytes().to_vec();
     let name = String::from_utf8_unchecked(name1);
-    let rust_address = rust::address::Address::new(name, (*address).device_id as u64);
+    let rust_address = rust::address::Address::new(
+        name,
+        (*address).device_id as u64,
+        (*address).device_type as u32,
+    );
     debug!("address: {:?}", rust_address);
     let mut session_store = CSessionStore {};
     let mut pre_key_store = CPreKeyStore {};
