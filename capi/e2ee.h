@@ -15,7 +15,8 @@ struct Address {
   char *name;
   unsigned int name_len;
   int device_id;
-  int device_type;
+  char *device_name;
+  unsigned int device_name_len;
 };
 
 struct DataWrap {
@@ -80,7 +81,8 @@ int generate_address(struct Address **address,
                      char *name,
                      unsigned int name_len,
                      int id,
-                     int device_type);
+                     char *device_name,
+                     unsigned int device_name_len);
 
 int generate_buf(struct DataWrap **buf, const char *data, unsigned int length);
 

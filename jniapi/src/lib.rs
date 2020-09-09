@@ -379,7 +379,7 @@ pub extern "system" fn Java_com_blue_baselib_ikey_RustKeyHelper_processWithKeyBu
     _: JClass,
     name: JString,
     device_id: i32,
-    device_type: i32,
+    device_name: JString,
     bob_register_id: i32,
     bob_pre_key: jbyteArray,
     bob_pre_key_id: i32,
@@ -396,7 +396,14 @@ pub extern "system" fn Java_com_blue_baselib_ikey_RustKeyHelper_processWithKeyBu
         return;
     }
     let name = name_ret.unwrap().into();
-    let address = Address::new(name, device_id as u64, device_type as u32);
+    let device_name_ret = env.get_string(device_name);
+    if device_name_ret.is_err() {
+        debug!("processWithKeyBundle. device_name input error");
+        let _ = env.throw("processWithKeyBundle. device_name input error");
+        return;
+    }
+    let device_name = device_name_ret.unwrap().into();
+    let address = Address::new(name, device_id as u64, device_name);
 
     let mut pre_key = curve_crypto::PublicKey::default();
     let bob_pre_key_id = bob_pre_key_id as u32;
@@ -527,7 +534,7 @@ pub extern "system" fn Java_com_blue_baselib_ikey_RustKeyHelper_cipherEncrypt(
     _: JClass,
     name: JString,
     device_id: i32,
-    device_type: i32,
+    device_name: JString,
     plain_text: jbyteArray,
 ) -> jobject {
     let jo_message_null = env
@@ -544,7 +551,14 @@ pub extern "system" fn Java_com_blue_baselib_ikey_RustKeyHelper_cipherEncrypt(
         return jo_message_null.into_inner();
     }
     let name = name_ret.unwrap().into();
-    let address = Address::new(name, device_id as u64, device_type as u32);
+    let device_name_ret = env.get_string(device_name);
+    if device_name_ret.is_err() {
+        debug!("device_name input error");
+        let _ = env.throw("device_name input error");
+        return jo_message_null.into_inner();
+    }
+    let device_name = device_name_ret.unwrap().into();
+    let address = Address::new(name, device_id as u64, device_name);
 
     let text = env.convert_byte_array(plain_text).unwrap();
 
@@ -597,7 +611,7 @@ pub extern "system" fn Java_com_blue_baselib_ikey_RustKeyHelper_cipherDecrypt(
     _: JClass,
     name: JString,
     device_id: i32,
-    device_type: i32,
+    device_name: JString,
     cipher_text: jbyteArray,
     message_type: i32,
 ) -> jbyteArray {
@@ -612,7 +626,14 @@ pub extern "system" fn Java_com_blue_baselib_ikey_RustKeyHelper_cipherDecrypt(
     }
     let name = name_ret.unwrap().into();
     trace!("cipherDecrypt 2 name:{:?}", name);
-    let address = Address::new(name, device_id as u64, device_type as u32);
+    let device_name_ret = env.get_string(device_name);
+    if device_name_ret.is_err() {
+        debug!("device_name input error");
+        let _ = env.throw("device_name input error");
+        return cipher_text;
+    }
+    let device_name = device_name_ret.unwrap().into();
+    let address = Address::new(name, device_id as u64, device_name);
     trace!("cipherDecrypt 3 address: {:?}", address);
 
     let text = env.convert_byte_array(cipher_text).unwrap();
@@ -759,7 +780,7 @@ pub extern "system" fn Java_com_blue_baselib_ikey_RustKeyHelper_createDistributi
     group: JString,
     name: JString,
     device_id: i32,
-    device_type: i32,
+    device_name: JString,
 ) -> jbyteArray {
     let name_ret = env.get_string(name);
     if name_ret.is_err() {
@@ -768,7 +789,14 @@ pub extern "system" fn Java_com_blue_baselib_ikey_RustKeyHelper_createDistributi
         return env.new_byte_array(1).unwrap();
     }
     let name = name_ret.unwrap().into();
-    let address = Address::new(name, device_id as u64, device_type as u32);
+    let device_name_ret = env.get_string(device_name);
+    if device_name_ret.is_err() {
+        debug!("device_name input error");
+        let _ = env.throw("device_name input error");
+        return env.new_byte_array(1).unwrap();
+    }
+    let device_name = device_name_ret.unwrap().into();
+    let address = Address::new(name, device_id as u64, device_name);
     let group_ret = env.get_string(group);
     if group_ret.is_err() {
         debug!("createDistributionMessage. group input error");
@@ -807,7 +835,7 @@ pub extern "system" fn Java_com_blue_baselib_ikey_RustKeyHelper_getDistributionM
     group: JString,
     name: JString,
     device_id: i32,
-    device_type: i32,
+    device_name: JString,
 ) -> jbyteArray {
     let name_ret = env.get_string(name);
     if name_ret.is_err() {
@@ -816,7 +844,14 @@ pub extern "system" fn Java_com_blue_baselib_ikey_RustKeyHelper_getDistributionM
         return env.new_byte_array(1).unwrap();
     }
     let name = name_ret.unwrap().into();
-    let address = Address::new(name, device_id as u64, device_type as u32);
+    let device_name_ret = env.get_string(device_name);
+    if device_name_ret.is_err() {
+        debug!("device_name input error");
+        let _ = env.throw("device_name input error");
+        return env.new_byte_array(1).unwrap();
+    }
+    let device_name = device_name_ret.unwrap().into();
+    let address = Address::new(name, device_id as u64, device_name);
     let group_ret = env.get_string(group);
     if group_ret.is_err() {
         debug!("getDistributionMessage. group input error");
@@ -855,7 +890,7 @@ pub extern "system" fn Java_com_blue_baselib_ikey_RustKeyHelper_processDistribut
     group: JString,
     name: JString,
     device_id: i32,
-    device_type: i32,
+    device_name: JString,
     distribution_message: jbyteArray,
 ) -> jboolean {
     let name_ret = env.get_string(name);
@@ -865,7 +900,14 @@ pub extern "system" fn Java_com_blue_baselib_ikey_RustKeyHelper_processDistribut
         return 0;
     }
     let name = name_ret.unwrap().into();
-    let address = Address::new(name, device_id as u64, device_type as u32);
+    let device_name_ret = env.get_string(device_name);
+    if device_name_ret.is_err() {
+        debug!("device_name input error");
+        let _ = env.throw("device_name input error");
+        return 0;
+    }
+    let device_name = device_name_ret.unwrap().into();
+    let address = Address::new(name, device_id as u64, device_name);
     let group_ret = env.get_string(group);
     if group_ret.is_err() {
         debug!("processDistributionMessage. group input error");
@@ -900,7 +942,7 @@ pub extern "system" fn Java_com_blue_baselib_ikey_RustKeyHelper_groupEncrypt(
     group: JString,
     name: JString,
     device_id: i32,
-    device_type: i32,
+    device_name: JString,
     plain_text: jbyteArray,
 ) -> jbyteArray {
     let name_ret = env.get_string(name);
@@ -910,7 +952,14 @@ pub extern "system" fn Java_com_blue_baselib_ikey_RustKeyHelper_groupEncrypt(
         return plain_text;
     }
     let name = name_ret.unwrap().into();
-    let address = Address::new(name, device_id as u64, device_type as u32);
+    let device_name_ret = env.get_string(device_name);
+    if device_name_ret.is_err() {
+        debug!("device_name input error");
+        let _ = env.throw("device_name input error");
+        return plain_text;
+    }
+    let device_name = device_name_ret.unwrap().into();
+    let address = Address::new(name, device_id as u64, device_name);
     let group_ret = env.get_string(group);
     if group_ret.is_err() {
         debug!("groupEncrypt. group input error");
@@ -949,7 +998,7 @@ pub extern "system" fn Java_com_blue_baselib_ikey_RustKeyHelper_groupDecrypt(
     group: JString,
     name: JString,
     device_id: i32,
-    device_type: i32,
+    device_name: JString,
     cipher_text: jbyteArray,
 ) -> jbyteArray {
     let name_ret = env.get_string(name);
@@ -959,7 +1008,14 @@ pub extern "system" fn Java_com_blue_baselib_ikey_RustKeyHelper_groupDecrypt(
         return cipher_text;
     }
     let name = name_ret.unwrap().into();
-    let address = Address::new(name, device_id as u64, device_type as u32);
+    let device_name_ret = env.get_string(device_name);
+    if device_name_ret.is_err() {
+        debug!("device_name input error");
+        let _ = env.throw("device_name input error");
+        return cipher_text;
+    }
+    let device_name = device_name_ret.unwrap().into();
+    let address = Address::new(name, device_id as u64, device_name);
     //    let group: String = env.get_string(group).unwrap().into();
     let group_ret = env.get_string(group);
     if group_ret.is_err() {
@@ -1130,14 +1186,18 @@ pub extern "system" fn Java_com_blue_baselib_ikey_RustKeyHelper_newAddress(
     _: JClass,
     name: JString,
     device_id: jint,
-    device_type: jint,
+    device_name: JString,
 ) -> jlong {
     let name: String = env
         .get_string(name)
         .expect("Couldn't get java name!")
         .into();
 
-    let address = rust::address::Address::new(name, device_id as u64, device_type as u32);
+    let device_name: String = env
+        .get_string(device_name)
+        .expect("Couldn't get java device_name!")
+        .into();
+    let address = rust::address::Address::new(name, device_id as u64, device_name);
     Box::into_raw(Box::new(address)) as jlong
 }
 
@@ -1146,14 +1206,18 @@ pub extern "system" fn Java_com_blue_baselib_ikey_RustKeyHelper_hasSenderChain(
     _: JClass,
     name: JString,
     device_id: i32,
-    device_type: i32,
+    device_name: JString,
 ) -> jboolean {
     let name: String = env
         .get_string(name)
         .expect("Couldn't get java name!")
         .into();
 
-    let address = rust::address::Address::new(name, device_id as u64, device_type as u32);
+    let device_name: String = env
+        .get_string(device_name)
+        .expect("Couldn't get java name!")
+        .into();
+    let address = rust::address::Address::new(name, device_id as u64, device_name);
 
     let mut session_store = JavaSessionStore {};
     let mut pre_key_store = JavaPreKeyStore {};
@@ -1209,14 +1273,20 @@ impl rust::store::SessionStore for JavaSessionStore {
         match env_result {
             Ok(env) => {
                 let jo_name = JValue::Object(env.new_string(address.name.clone()).unwrap().into());
+                let jo_device_name =
+                    JValue::Object(env.new_string(address.device_name.clone()).unwrap().into());
                 let args: [JValue; 3] = [
                     jo_name,
                     JValue::Int(address.device_id as i32),
-                    JValue::Int(address.device_type as i32),
+                    jo_device_name,
                 ];
                 let obj = (*ptr_fn).as_ref().unwrap().as_obj();
-                let call_result =
-                    env.call_method(obj, "loadSession", "(Ljava/lang/String;II)[B", &args);
+                let call_result = env.call_method(
+                    obj,
+                    "loadSession",
+                    "(Ljava/lang/String;ILjava/lang/String;)[B",
+                    &args,
+                );
 
                 if let Ok(true) = env.exception_check() {
                     let _ = env.exception_describe();
@@ -1290,14 +1360,21 @@ impl rust::store::SessionStore for JavaSessionStore {
         //let raw = Box::into_raw(Box::new(address.clone())) as jlong;
         call_jvm(&JNI_CALLBACK, move |obj: JObject, env: &JNIEnv| {
             let jo_name = JValue::Object(env.new_string(address.name.clone()).unwrap().into());
+            let jo_device_name =
+                JValue::Object(env.new_string(address.device_name.clone()).unwrap().into());
             let ja_session = env.byte_array_from_slice(vec.as_slice()).unwrap().into();
             let args: [JValue; 4] = [
                 jo_name,
                 JValue::Int(address.device_id as i32),
-                JValue::Int(address.device_type as i32),
+                jo_device_name,
                 JValue::Object(ja_session),
             ];
-            let result = env.call_method(obj, "storeSession", "(Ljava/lang/String;II[B)V", &args);
+            let result = env.call_method(
+                obj,
+                "storeSession",
+                "(Ljava/lang/String;ILjava/lang/String;[B)V",
+                &args,
+            );
             trace!("e2ee-encrypt. call java storeSession result: {:?}", result);
 
             if result.is_err() {
@@ -1563,6 +1640,8 @@ impl rust::store::IdentityKeyStore for JavaIdentityStore {
             Ok(env) => {
                 let obj = (*ptr_fn).as_ref().unwrap().as_obj();
                 let jo_name = JValue::Object(env.new_string(address.name.clone()).unwrap().into());
+                let jo_device_name =
+                    JValue::Object(env.new_string(address.device_name.clone()).unwrap().into());
                 let jo_public = JValue::Object(
                     env.byte_array_from_slice(identity.as_bytes())
                         .unwrap()
@@ -1571,11 +1650,15 @@ impl rust::store::IdentityKeyStore for JavaIdentityStore {
                 let args: [JValue; 4] = [
                     jo_name,
                     JValue::Int(address.device_id as i32),
-                    JValue::Int(address.device_type as i32),
+                    jo_device_name,
                     jo_public,
                 ];
-                let call_result =
-                    env.call_method(obj, "saveIdentity", "(Ljava/lang/String;II[B)Z", &args);
+                let call_result = env.call_method(
+                    obj,
+                    "saveIdentity",
+                    "(Ljava/lang/String;ILjava/lang/String;[B)Z",
+                    &args,
+                );
                 if let Ok(true) = env.exception_check() {
                     let _ = env.exception_describe();
                     let _ = env.exception_clear();
@@ -1621,13 +1704,19 @@ impl rust::store::IdentityKeyStore for JavaIdentityStore {
             Ok(env) => {
                 let obj = (*ptr_fn).as_ref().unwrap().as_obj();
                 let jo_name = JValue::Object(env.new_string(address.name.clone()).unwrap().into());
+                let jo_device_name =
+                    JValue::Object(env.new_string(address.device_name.clone()).unwrap().into());
                 let args: [JValue; 3] = [
                     jo_name,
                     JValue::Int(address.device_id as i32),
-                    JValue::Int(address.device_type as i32),
+                    jo_device_name,
                 ];
-                let call_result =
-                    env.call_method(obj, "getIdentity", "(Ljava/lang/String;II)[B", &args);
+                let call_result = env.call_method(
+                    obj,
+                    "getIdentity",
+                    "(Ljava/lang/String;ILjava/lang/String;)[B",
+                    &args,
+                );
                 if let Ok(true) = env.exception_check() {
                     let _ = env.exception_describe();
                     let _ = env.exception_clear();
@@ -1692,6 +1781,8 @@ impl rust::store::IdentityKeyStore for JavaIdentityStore {
             Ok(env) => {
                 let obj = (*ptr_fn).as_ref().unwrap().as_obj();
                 let jo_name = JValue::Object(env.new_string(address.name.clone()).unwrap().into());
+                let jo_device_name =
+                    JValue::Object(env.new_string(address.device_name.clone()).unwrap().into());
                 let jo_public = JValue::Object(
                     env.byte_array_from_slice(identity_key.as_bytes())
                         .unwrap()
@@ -1700,11 +1791,15 @@ impl rust::store::IdentityKeyStore for JavaIdentityStore {
                 let args: [JValue; 4] = [
                     jo_name,
                     JValue::Int(address.device_id as i32),
-                    JValue::Int(address.device_type as i32),
+                    jo_device_name,
                     jo_public,
                 ];
-                let call_result =
-                    env.call_method(obj, "isTrustedIdentity", "(Ljava/lang/String;II[B)Z", &args);
+                let call_result = env.call_method(
+                    obj,
+                    "isTrustedIdentity",
+                    "(Ljava/lang/String;ILjava/lang/String;[B)Z",
+                    &args,
+                );
                 if let Ok(true) = env.exception_check() {
                     let _ = env.exception_describe();
                     let _ = env.exception_clear();
@@ -2006,19 +2101,24 @@ impl rust::store::SenderKeyStore for JavaSenderKeyStore {
         call_jvm(&JNI_CALLBACK, move |obj: JObject, env: &JNIEnv| {
             let jo_name =
                 JValue::Object(env.new_string(sender.sender.name.clone()).unwrap().into());
+            let jo_device_name = JValue::Object(
+                env.new_string(sender.sender.device_name.clone())
+                    .unwrap()
+                    .into(),
+            );
             let jo_group = JValue::Object(env.new_string(sender.group_id.clone()).unwrap().into());
             let ja_session = env.byte_array_from_slice(vec.as_slice()).unwrap().into();
             let args: [JValue; 5] = [
                 jo_name,
                 jo_group,
                 JValue::Int(sender.sender.device_id as i32),
-                JValue::Int(sender.sender.device_type as i32),
+                jo_device_name,
                 JValue::Object(ja_session),
             ];
             let result = env.call_method(
                 obj,
                 "storeSenderKey",
-                "(Ljava/lang/String;Ljava/lang/String;II[B)V",
+                "(Ljava/lang/String;Ljava/lang/String;ILjava/lang/String;[B)V",
                 &args,
             );
             debug!("call java storeSenderKey: {:?}", result);
@@ -2064,19 +2164,24 @@ impl rust::store::SenderKeyStore for JavaSenderKeyStore {
             Ok(env) => {
                 let jo_name =
                     JValue::Object(env.new_string(sender.sender.name.clone()).unwrap().into());
+                let jo_device_name = JValue::Object(
+                    env.new_string(sender.sender.device_name.clone())
+                        .unwrap()
+                        .into(),
+                );
                 let jo_group =
                     JValue::Object(env.new_string(sender.group_id.clone()).unwrap().into());
                 let args: [JValue; 4] = [
                     jo_name,
                     jo_group,
                     JValue::Int(sender.sender.device_id as i32),
-                    JValue::Int(sender.sender.device_type as i32),
+                    jo_device_name,
                 ];
                 let obj = (*ptr_fn).as_ref().unwrap().as_obj();
                 let call_result = env.call_method(
                     obj,
                     "getSenderKey",
-                    "(Ljava/lang/String;Ljava/lang/String;II)[B",
+                    "(Ljava/lang/String;Ljava/lang/String;ILjava/lang/String;)[B",
                     &args,
                 );
                 if let Ok(true) = env.exception_check() {
