@@ -18,6 +18,9 @@ use std::os::raw::c_void;
 use std::str::FromStr;
 use std::sync::Mutex;
 
+const JAVA_PACKAGE: &str = "com/blue/baselib/ikey/";
+// const JAVA_PACKAGE: &str = "ai/totok/e2ee/";
+
 // 添加一个全局变量来缓存回调对象
 lazy_static! {
     // jvm
@@ -37,11 +40,7 @@ macro_rules! jni_method {
     }};
 }
 
-#[no_mangle]
-pub unsafe extern "system" fn Java_com_blue_baselib_ikey_RustKeyHelper_newKeyPair(
-    env: JNIEnv,
-    _: JClass,
-) -> jobject {
+pub unsafe fn newKeyPair(env: JNIEnv, _: JClass) -> jobject {
     let pair = curve_crypto::KeyPair::generate();
 
     let ja_public_key = env.byte_array_from_slice(pair.public.as_bytes()).unwrap();
@@ -49,22 +48,25 @@ pub unsafe extern "system" fn Java_com_blue_baselib_ikey_RustKeyHelper_newKeyPai
 
     let jo_public_key = env
         .new_object(
-            "com/blue/baselib/ikey/EcPublicKey",
+            format!("{}EcPublicKey", JAVA_PACKAGE),
             "([B)V",
             &[JValue::Object(JObject::from(ja_public_key))],
         )
         .unwrap();
     let jo_private_key = env
         .new_object(
-            "com/blue/baselib/ikey/EcPrivateKey",
+            format!("{}EcPrivateKey", JAVA_PACKAGE),
             "([B)V",
             &[JValue::Object(JObject::from(ja_private_key))],
         )
         .unwrap();
     let jo_key_pair = env
         .new_object(
-            "com/blue/baselib/ikey/KeyPair",
-            "(Lcom/blue/baselib/ikey/EcPublicKey;Lcom/blue/baselib/ikey/EcPrivateKey;)V",
+            format!("{}KeyPair", JAVA_PACKAGE),
+            format!(
+                "(L{}EcPublicKey;L{}EcPrivateKey;)V",
+                JAVA_PACKAGE, JAVA_PACKAGE
+            ),
             &[
                 JValue::Object(jo_public_key),
                 JValue::Object(jo_private_key),
@@ -75,11 +77,7 @@ pub unsafe extern "system" fn Java_com_blue_baselib_ikey_RustKeyHelper_newKeyPai
     jo_key_pair.into_inner()
 }
 
-#[no_mangle]
-pub unsafe extern "system" fn Java_com_blue_baselib_ikey_RustKeyHelper_newIdentityKey(
-    env: JNIEnv,
-    _: JClass,
-) -> jobject {
+pub unsafe fn newIdentityKey(env: JNIEnv, _: JClass) -> jobject {
     let pair = rust::keys::IdentityKeyPair::new(&mut OsRng);
 
     let ja_public_key = env.byte_array_from_slice(pair.public.as_bytes()).unwrap();
@@ -87,22 +85,25 @@ pub unsafe extern "system" fn Java_com_blue_baselib_ikey_RustKeyHelper_newIdenti
 
     let jo_public_key = env
         .new_object(
-            "com/blue/baselib/ikey/EcPublicKey",
+            format!("{}EcPublicKey", JAVA_PACKAGE),
             "([B)V",
             &[JValue::Object(JObject::from(ja_public_key))],
         )
         .unwrap();
     let jo_private_key = env
         .new_object(
-            "com/blue/baselib/ikey/EcPrivateKey",
+            format!("{}EcPrivateKey", JAVA_PACKAGE),
             "([B)V",
             &[JValue::Object(JObject::from(ja_private_key))],
         )
         .unwrap();
     let jo_key_pair = env
         .new_object(
-            "com/blue/baselib/ikey/IdentityKeyPair",
-            "(Lcom/blue/baselib/ikey/EcPublicKey;Lcom/blue/baselib/ikey/EcPrivateKey;)V",
+            format!("{}IdentityKeyPair", JAVA_PACKAGE),
+            format!(
+                "(L{}EcPublicKey;L{}EcPrivateKey;)V",
+                JAVA_PACKAGE, JAVA_PACKAGE
+            ),
             &[
                 JValue::Object(jo_public_key),
                 JValue::Object(jo_private_key),
@@ -113,15 +114,9 @@ pub unsafe extern "system" fn Java_com_blue_baselib_ikey_RustKeyHelper_newIdenti
     jo_key_pair.into_inner()
 }
 
-#[no_mangle]
-pub unsafe extern "system" fn Java_com_blue_baselib_ikey_RustKeyHelper_newSignedPreKey(
-    env: JNIEnv,
-    _: JClass,
-    ik: JObject,
-    key_id: jint,
-) -> jobject {
+pub unsafe fn newSignedPreKey(env: JNIEnv, _: JClass, ik: JObject, key_id: jint) -> jobject {
     let jv_public_key = env
-        .get_field(ik, "publicKey", "Lcom/blue/baselib/ikey/EcPublicKey;")
+        .get_field(ik, "publicKey", format!("L{}EcPublicKey;", JAVA_PACKAGE))
         .unwrap();
     let jo_public_key = jv_public_key.l().unwrap();
     let ja_public_key = env
@@ -133,7 +128,7 @@ pub unsafe extern "system" fn Java_com_blue_baselib_ikey_RustKeyHelper_newSigned
     let public_key = env.convert_byte_array(ja_public_key).unwrap();
 
     let jv_private_key = env
-        .get_field(ik, "privateKey", "Lcom/blue/baselib/ikey/EcPrivateKey;")
+        .get_field(ik, "privateKey", format!("L{}EcPrivateKey;", JAVA_PACKAGE))
         .unwrap();
     let jo_private_key = jv_private_key.l().unwrap();
     let ja_private_key = env
@@ -162,14 +157,14 @@ pub unsafe extern "system" fn Java_com_blue_baselib_ikey_RustKeyHelper_newSigned
 
     let jo_public_key = env
         .new_object(
-            "com/blue/baselib/ikey/EcPublicKey",
+            format!("{}EcPublicKey", JAVA_PACKAGE),
             "([B)V",
             &[JValue::Object(JObject::from(ja_public_key))],
         )
         .unwrap();
     let jo_private_key = env
         .new_object(
-            "com/blue/baselib/ikey/EcPrivateKey",
+            format!("{}EcPrivateKey", JAVA_PACKAGE),
             "([B)V",
             &[JValue::Object(JObject::from(ja_private_key))],
         )
@@ -182,8 +177,11 @@ pub unsafe extern "system" fn Java_com_blue_baselib_ikey_RustKeyHelper_newSigned
     debug!("ts: {:?}", ts.j());
 
     let jo_key_pair = env.new_object(
-        "com/blue/baselib/ikey/SignedPreKey",
-        "(ILcom/blue/baselib/ikey/EcPrivateKey;Lcom/blue/baselib/ikey/EcPublicKey;[BJ)V",
+        format!("{}SignedPreKey", JAVA_PACKAGE),
+        format!(
+            "(IL{}EcPrivateKey;L{}EcPublicKey;[BJ)V",
+            JAVA_PACKAGE, JAVA_PACKAGE
+        ),
         &[
             JValue::Int(key_id),
             JValue::Object(jo_private_key),
@@ -196,12 +194,7 @@ pub unsafe extern "system" fn Java_com_blue_baselib_ikey_RustKeyHelper_newSigned
     jo_key_pair.unwrap().into_inner()
 }
 
-#[no_mangle]
-pub extern "system" fn Java_com_blue_baselib_ikey_RustKeyHelper_initLogger(
-    env: JNIEnv,
-    _: JClass,
-    level: JString,
-) {
+pub fn initLogger(env: JNIEnv, _: JClass, level: JString) {
     let mut level_string: String = "error".to_string();
     let l = env.get_string(level);
     if l.is_ok() {
@@ -215,12 +208,7 @@ pub extern "system" fn Java_com_blue_baselib_ikey_RustKeyHelper_initLogger(
     );
 }
 
-#[no_mangle]
-pub unsafe extern "system" fn Java_com_blue_baselib_ikey_RustKeyHelper_newPreKey(
-    env: JNIEnv,
-    _: JClass,
-    key_id: jint,
-) -> jobject {
+pub unsafe fn newPreKey(env: JNIEnv, _: JClass, key_id: jint) -> jobject {
     let pair = rust::keys::PreKey::new(key_id as u32);
     debug!("{:?}", pair);
 
@@ -233,22 +221,25 @@ pub unsafe extern "system" fn Java_com_blue_baselib_ikey_RustKeyHelper_newPreKey
 
     let jo_public_key = env
         .new_object(
-            "com/blue/baselib/ikey/EcPublicKey",
+            format!("{}EcPublicKey", JAVA_PACKAGE),
             "([B)V",
             &[JValue::Object(JObject::from(ja_public_key))],
         )
         .unwrap();
     let jo_private_key = env
         .new_object(
-            "com/blue/baselib/ikey/EcPrivateKey",
+            format!("{}EcPrivateKey", JAVA_PACKAGE),
             "([B)V",
             &[JValue::Object(JObject::from(ja_private_key))],
         )
         .unwrap();
     let jo_key_pair = env
         .new_object(
-            "com/blue/baselib/ikey/PreKeyRecord",
-            "(ILcom/blue/baselib/ikey/EcPrivateKey;Lcom/blue/baselib/ikey/EcPublicKey;)V",
+            format!("{}PreKeyRecord", JAVA_PACKAGE),
+            format!(
+                "(IL{}EcPrivateKey;L{}EcPublicKey;)V",
+                JAVA_PACKAGE, JAVA_PACKAGE
+            ),
             &[
                 JValue::Int(key_id),
                 JValue::Object(jo_private_key),
@@ -260,13 +251,7 @@ pub unsafe extern "system" fn Java_com_blue_baselib_ikey_RustKeyHelper_newPreKey
     jo_key_pair.into_inner()
 }
 
-#[no_mangle]
-pub unsafe extern "system" fn Java_com_blue_baselib_ikey_RustKeyHelper_newPreKeys(
-    env: JNIEnv,
-    _: JClass,
-    start: jint,
-    count: jint,
-) -> jobject {
+pub fn newPreKeys(env: JNIEnv, _: JClass, start: jint, count: jint) -> jobject {
     let keys = rust::keys::PreKey::new_list(start as u32, count as u32);
 
     let j_ArrayList = env.new_object("java/util/ArrayList", "()V", &[]).unwrap();
@@ -281,22 +266,25 @@ pub unsafe extern "system" fn Java_com_blue_baselib_ikey_RustKeyHelper_newPreKey
 
         let jo_public_key = env
             .new_object(
-                "com/blue/baselib/ikey/EcPublicKey",
+                format!("{}EcPublicKey", JAVA_PACKAGE),
                 "([B)V",
                 &[JValue::Object(JObject::from(ja_public_key))],
             )
             .unwrap();
         let jo_private_key = env
             .new_object(
-                "com/blue/baselib/ikey/EcPrivateKey",
+                format!("{}EcPrivateKey", JAVA_PACKAGE),
                 "([B)V",
                 &[JValue::Object(JObject::from(ja_private_key))],
             )
             .unwrap();
         let jo_key_pair = env
             .new_object(
-                "com/blue/baselib/ikey/PreKeyRecord",
-                "(ILcom/blue/baselib/ikey/EcPrivateKey;Lcom/blue/baselib/ikey/EcPublicKey;)V",
+                format!("{}PreKeyRecord", JAVA_PACKAGE),
+                format!(
+                    "(IL{}EcPrivateKey;L{}EcPublicKey;)V",
+                    JAVA_PACKAGE, JAVA_PACKAGE
+                ),
                 &[
                     JValue::Int(key.id as i32),
                     JValue::Object(jo_private_key),
@@ -315,8 +303,7 @@ pub unsafe extern "system" fn Java_com_blue_baselib_ikey_RustKeyHelper_newPreKey
     j_ArrayList.into_inner()
 }
 
-#[no_mangle]
-pub extern "system" fn Java_com_blue_baselib_ikey_RustKeyHelper_curveAgreement(
+pub fn curveAgreement(
     env: JNIEnv,
     _: JClass,
     our_private: jbyteArray,
@@ -333,8 +320,7 @@ pub extern "system" fn Java_com_blue_baselib_ikey_RustKeyHelper_curveAgreement(
     env.byte_array_from_slice(secret.as_bytes()).unwrap()
 }
 
-#[no_mangle]
-pub extern "system" fn Java_com_blue_baselib_ikey_RustKeyHelper_curveCalculateSignature(
+pub fn curveCalculateSignature(
     env: JNIEnv,
     _: JClass,
     our_private: jbyteArray,
@@ -350,8 +336,7 @@ pub extern "system" fn Java_com_blue_baselib_ikey_RustKeyHelper_curveCalculateSi
     env.byte_array_from_slice(&signature.to_bytes()).unwrap()
 }
 
-#[no_mangle]
-pub extern "system" fn Java_com_blue_baselib_ikey_RustKeyHelper_curveVerifySignature(
+pub fn curveVerifySignature(
     env: JNIEnv,
     _: JClass,
     their_public: jbyteArray,
@@ -373,8 +358,7 @@ pub extern "system" fn Java_com_blue_baselib_ikey_RustKeyHelper_curveVerifySigna
     1
 }
 
-#[no_mangle]
-pub extern "system" fn Java_com_blue_baselib_ikey_RustKeyHelper_processWithKeyBundle(
+pub fn processWithKeyBundle(
     env: JNIEnv,
     _: JClass,
     name: JString,
@@ -507,13 +491,10 @@ pub extern "system" fn Java_com_blue_baselib_ikey_RustKeyHelper_processWithKeyBu
         result
     );
     if let Err(e) = result {
-        // let f = format!("process_with_key_bundle fail: {:?}", e);
-        // error!("{}", f);
-        // let _ = env.throw(f);
         match e {
             rust::errors::MyError::NoSignedKeyException => {
                 let _ = env.throw_new(
-                    "com/blue/baselib/ikey/NoSignedKeyException",
+                    format!("{}NoSignedKeyException", JAVA_PACKAGE),
                     "no signed key",
                 );
             }
@@ -528,8 +509,7 @@ pub extern "system" fn Java_com_blue_baselib_ikey_RustKeyHelper_processWithKeyBu
     info!("record: {:?}", record);
 }
 
-#[no_mangle]
-pub extern "system" fn Java_com_blue_baselib_ikey_RustKeyHelper_cipherEncrypt(
+pub fn cipherEncrypt(
     env: JNIEnv,
     _: JClass,
     name: JString,
@@ -539,7 +519,7 @@ pub extern "system" fn Java_com_blue_baselib_ikey_RustKeyHelper_cipherEncrypt(
 ) -> jobject {
     let jo_message_null = env
         .new_object(
-            "com/blue/baselib/ikey/CipherMessage",
+            format!("{}CipherMessage", JAVA_PACKAGE),
             "([BI)V",
             &[JValue::Object(JObject::from(plain_text)), JValue::Int(0)],
         )
@@ -593,7 +573,7 @@ pub extern "system" fn Java_com_blue_baselib_ikey_RustKeyHelper_cipherEncrypt(
 
     let jo_message = env
         .new_object(
-            "com/blue/baselib/ikey/CipherMessage",
+            format!("{}CipherMessage", JAVA_PACKAGE),
             "([BI)V",
             &[
                 JValue::Object(JObject::from(ja_data)),
@@ -605,8 +585,7 @@ pub extern "system" fn Java_com_blue_baselib_ikey_RustKeyHelper_cipherEncrypt(
     jo_message.into_inner()
 }
 
-#[no_mangle]
-pub extern "system" fn Java_com_blue_baselib_ikey_RustKeyHelper_cipherDecrypt(
+pub fn cipherDecrypt(
     env: JNIEnv,
     _: JClass,
     name: JString,
@@ -684,19 +663,19 @@ pub extern "system" fn Java_com_blue_baselib_ikey_RustKeyHelper_cipherDecrypt(
                         match e {
                             rust::errors::MyError::DuplicateMessageException => {
                                 let _ = env.throw_new(
-                                    "com/blue/baselib/ikey/DuplicateMessageException",
+                                    format!("{}DuplicateMessageException", JAVA_PACKAGE),
                                     "receive message with old counter",
                                 );
                             }
                             rust::errors::MyError::NoPreKeyException => {
                                 let _ = env.throw_new(
-                                    "com/blue/baselib/ikey/NoPreKeyException",
+                                    format!("{}NoPreKeyException", JAVA_PACKAGE),
                                     "no pre key found",
                                 );
                             }
                             rust::errors::MyError::NoSignedKeyException => {
                                 let _ = env.throw_new(
-                                    "com/blue/baselib/ikey/NoSignedKeyException",
+                                    format!("{}NoSignedKeyException", JAVA_PACKAGE),
                                     "no signed key found",
                                 );
                             }
@@ -746,7 +725,7 @@ pub extern "system" fn Java_com_blue_baselib_ikey_RustKeyHelper_cipherDecrypt(
                         match e {
                             rust::errors::MyError::DuplicateMessageException => {
                                 let _ = env.throw_new(
-                                    "com/blue/baselib/ikey/DuplicateMessageException",
+                                    format!("{}DuplicateMessageException", JAVA_PACKAGE),
                                     "receive message with old counter",
                                 );
                             }
@@ -773,8 +752,7 @@ pub extern "system" fn Java_com_blue_baselib_ikey_RustKeyHelper_cipherDecrypt(
 }
 
 use rust::message::CiphertextMessage;
-#[no_mangle]
-pub extern "system" fn Java_com_blue_baselib_ikey_RustKeyHelper_createDistributionMessage(
+pub fn createDistributionMessage(
     env: JNIEnv,
     _: JClass,
     group: JString,
@@ -828,8 +806,7 @@ pub extern "system" fn Java_com_blue_baselib_ikey_RustKeyHelper_createDistributi
     }
 }
 
-#[no_mangle]
-pub extern "system" fn Java_com_blue_baselib_ikey_RustKeyHelper_getDistributionMessage(
+pub fn getDistributionMessage(
     env: JNIEnv,
     _: JClass,
     group: JString,
@@ -883,8 +860,7 @@ pub extern "system" fn Java_com_blue_baselib_ikey_RustKeyHelper_getDistributionM
     }
 }
 
-#[no_mangle]
-pub extern "system" fn Java_com_blue_baselib_ikey_RustKeyHelper_processDistributionMessage(
+pub fn processDistributionMessage(
     env: JNIEnv,
     _: JClass,
     group: JString,
@@ -935,8 +911,7 @@ pub extern "system" fn Java_com_blue_baselib_ikey_RustKeyHelper_processDistribut
     1
 }
 
-#[no_mangle]
-pub extern "system" fn Java_com_blue_baselib_ikey_RustKeyHelper_groupEncrypt(
+pub fn groupEncrypt(
     env: JNIEnv,
     _: JClass,
     group: JString,
@@ -991,8 +966,7 @@ pub extern "system" fn Java_com_blue_baselib_ikey_RustKeyHelper_groupEncrypt(
     }
 }
 
-#[no_mangle]
-pub extern "system" fn Java_com_blue_baselib_ikey_RustKeyHelper_groupDecrypt(
+pub fn groupDecrypt(
     env: JNIEnv,
     _: JClass,
     group: JString,
@@ -1057,20 +1031,72 @@ pub extern "system" fn Java_com_blue_baselib_ikey_RustKeyHelper_groupDecrypt(
 
 #[no_mangle]
 unsafe fn JNI_OnLoad(jvm: JavaVM, _reserved: *mut c_void) -> jint {
-    // android_logger::init_once(
-    //     Config::default()
-    //         .with_min_level(Level::Trace)
-    //         .with_tag("e2ee"),
-    // );
     info!("Load JNI...");
 
-    let class_name: &str = "com/blue/baselib/ikey/RustKeyHelper";
-    let jni_methods = [jni_method!(
-        initStoreInterface,
-        "(Lcom/blue/baselib/ikey/StoreInterface;)V"
-    )];
+    let class_name: String = format!("{}RustKeyHelper", JAVA_PACKAGE);
+    let jni_methods = [
+        jni_method!(
+            initStoreInterface,
+            format!("(L{}StoreInterface;)V", JAVA_PACKAGE)
+        ),
+        jni_method!(newKeyPair, format!("()L{}KeyPair;", JAVA_PACKAGE)),
+        jni_method!(
+            newIdentityKey,
+            format!("()L{}IdentityKeyPair;", JAVA_PACKAGE)
+        ),
+        jni_method!(
+            newSignedPreKey,
+            format!(
+                "(L{}IdentityKeyPair;I)L{}SignedPreKey;",
+                JAVA_PACKAGE, JAVA_PACKAGE
+            )
+        ),
+        jni_method!(initLogger, "(Ljava/lang/String;)V"),
+        jni_method!(newPreKey, format!("(I)L{}PreKeyRecord;", JAVA_PACKAGE)),
+        jni_method!(newPreKeys, "(II)Ljava/util/List;"),
+        jni_method!(curveAgreement, "([B[B)[B"),
+        jni_method!(curveCalculateSignature, "([B[B)[B"),
+        jni_method!(curveVerifySignature, "([B[B[B)Z"),
+        jni_method!(newAddress, "(Ljava/lang/String;ILjava/lang/String;)J"),
+        jni_method!(
+            processWithKeyBundle,
+            "(Ljava/lang/String;ILjava/lang/String;I[BI[BI[B[B[B)V"
+        ),
+        jni_method!(
+            cipherEncrypt,
+            format!(
+                "(Ljava/lang/String;ILjava/lang/String;[B)L{}CipherMessage;",
+                JAVA_PACKAGE
+            )
+        ),
+        jni_method!(
+            cipherDecrypt,
+            "(Ljava/lang/String;ILjava/lang/String;[BI)[B"
+        ),
+        jni_method!(
+            createDistributionMessage,
+            "(Ljava/lang/String;Ljava/lang/String;ILjava/lang/String;)[B"
+        ),
+        jni_method!(
+            getDistributionMessage,
+            "(Ljava/lang/String;Ljava/lang/String;ILjava/lang/String;)[B"
+        ),
+        jni_method!(
+            processDistributionMessage,
+            "(Ljava/lang/String;Ljava/lang/String;ILjava/lang/String;[B)Z"
+        ),
+        jni_method!(
+            groupEncrypt,
+            "(Ljava/lang/String;Ljava/lang/String;ILjava/lang/String;[B)[B"
+        ),
+        jni_method!(
+            groupDecrypt,
+            "(Ljava/lang/String;Ljava/lang/String;ILjava/lang/String;[B)[B"
+        ),
+        jni_method!(hasSenderChain, "(Ljava/lang/String;ILjava/lang/String;)Z"),
+    ];
 
-    let ok = register_natives(&jvm, class_name, jni_methods.as_ref());
+    let ok = register_natives(&jvm, &class_name, jni_methods.as_ref());
 
     let mut ptr_jvm = JVM_GLOBAL.lock().unwrap();
     *ptr_jvm = Some(jvm);
@@ -1078,7 +1104,6 @@ unsafe fn JNI_OnLoad(jvm: JavaVM, _reserved: *mut c_void) -> jint {
     ok
 }
 
-#[no_mangle]
 pub fn initStoreInterface(env: JNIEnv, _obj: jobject, callback: jobject) {
     // 创建一个全局引用,
     let callback = env.new_global_ref(JObject::from(callback)).unwrap();
@@ -1087,33 +1112,6 @@ pub fn initStoreInterface(env: JNIEnv, _obj: jobject, callback: jobject) {
     let mut ptr_fn = JNI_CALLBACK.lock().unwrap();
     *ptr_fn = Some(callback);
 }
-
-//#[no_mangle]
-//pub fn loadSession(env: JNIEnv, _obj: jobject, callback: jobject) {
-//    // 创建一个全局引用,
-//    let callback = env.new_global_ref(JObject::from(callback)).unwrap();
-//
-//    // 添加到全局缓存
-//    let mut ptr_fn = JNI_CALLBACK.lock().unwrap();
-//    *ptr_fn = Some(callback);
-//}
-//
-//fn call_java_callback() {
-//    call_jvm(&JNI_CALLBACK, move |obj: JObject, env: &JNIEnv| {
-//        //let uid: JString = env.new_string(uid.clone()).unwrap();
-//        //let args: [JValue; 1] = [JValue::from(state)];
-//        match env.call_method(obj, "loadSession", "()[B", &[]) {
-//            Ok(jvalue) => {
-//                let out = jvalue.l().unwrap().into_inner() as jbyteArray;
-//                let session = env.convert_byte_array(out).unwrap();
-//                debug!("callback succeed: {:?}", session);
-//            }
-//            Err(e) => {
-//                error!("callback failed : {:?}", e);
-//            }
-//        }
-//    });
-//}
 
 /// # 封装jvm调用
 fn call_jvm<F>(callback: &Mutex<Option<GlobalRef>>, run: F)
@@ -1180,8 +1178,7 @@ unsafe fn register_natives(jvm: &JavaVM, class_name: &str, methods: &[NativeMeth
     }
 }
 
-#[no_mangle]
-pub extern "system" fn Java_com_blue_baselib_ikey_RustKeyHelper_newAddress(
+pub fn newAddress(
     env: JNIEnv,
     _: JClass,
     name: JString,
@@ -1201,7 +1198,7 @@ pub extern "system" fn Java_com_blue_baselib_ikey_RustKeyHelper_newAddress(
     Box::into_raw(Box::new(address)) as jlong
 }
 
-pub extern "system" fn Java_com_blue_baselib_ikey_RustKeyHelper_hasSenderChain(
+pub fn hasSenderChain(
     env: JNIEnv,
     _: JClass,
     name: JString,
@@ -1509,7 +1506,7 @@ impl rust::store::IdentityKeyStore for JavaIdentityStore {
                 let call_result = env.call_method(
                     obj,
                     "getIdentityKeyPair",
-                    "()Lcom/blue/baselib/ikey/IdentityKeyPair;",
+                    format!("()L{}IdentityKeyPair;", JAVA_PACKAGE),
                     &[],
                 );
                 if let Ok(true) = env.exception_check() {
@@ -1527,7 +1524,7 @@ impl rust::store::IdentityKeyStore for JavaIdentityStore {
                             return IdentityKeyPair::default();
                         }
                         let jv_public_key = env
-                            .get_field(ik, "publicKey", "Lcom/blue/baselib/ikey/EcPublicKey;")
+                            .get_field(ik, "publicKey", format!("L{}EcPublicKey;", JAVA_PACKAGE))
                             .unwrap();
                         let jo_public_key = jv_public_key.l().unwrap();
                         if jo_public_key.is_null() {
@@ -1542,7 +1539,7 @@ impl rust::store::IdentityKeyStore for JavaIdentityStore {
                         let public_key = env.convert_byte_array(ja_public_key).unwrap();
 
                         let jv_private_key = env
-                            .get_field(ik, "privateKey", "Lcom/blue/baselib/ikey/EcPrivateKey;")
+                            .get_field(ik, "privateKey", format!("L{}EcPrivateKey;", JAVA_PACKAGE))
                             .unwrap();
                         let jo_private_key = jv_private_key.l().unwrap();
                         if jo_public_key.is_null() {
@@ -1854,7 +1851,7 @@ impl rust::store::SignedPreKeyStore for JavaSignedKeyStore {
                 let call_result = env.call_method(
                     obj,
                     "loadSignedPreKey",
-                    "(I)Lcom/blue/baselib/ikey/SignedPreKey;",
+                    format!("(I)L{}SignedPreKey;", JAVA_PACKAGE),
                     &args,
                 );
                 if let Ok(true) = env.exception_check() {
@@ -1878,7 +1875,7 @@ impl rust::store::SignedPreKeyStore for JavaSignedKeyStore {
                                     .get_field(
                                         jo,
                                         "publicKey",
-                                        "Lcom/blue/baselib/ikey/EcPublicKey;",
+                                        format!("L{}EcPublicKey;", JAVA_PACKAGE),
                                     )
                                     .unwrap();
                                 let jo_public_key = jv_public_key.l().unwrap();
@@ -1895,7 +1892,7 @@ impl rust::store::SignedPreKeyStore for JavaSignedKeyStore {
                                     .get_field(
                                         jo,
                                         "privateKey",
-                                        "Lcom/blue/baselib/ikey/EcPrivateKey;",
+                                        format!("L{}EcPrivateKey;", JAVA_PACKAGE),
                                     )
                                     .unwrap();
                                 let jo_private_key = jv_private_key.l().unwrap();
@@ -1991,7 +1988,7 @@ impl rust::store::PreKeyStore for JavaPreKeyStore {
                 let call_result = env.call_method(
                     obj,
                     "loadPreKey",
-                    "(I)Lcom/blue/baselib/ikey/PreKeyRecord;",
+                    format!("(I)L{}PreKeyRecord;", JAVA_PACKAGE),
                     &args,
                 );
                 if let Ok(true) = env.exception_check() {
@@ -2014,7 +2011,7 @@ impl rust::store::PreKeyStore for JavaPreKeyStore {
                                     .get_field(
                                         jo,
                                         "publicKey",
-                                        "Lcom/blue/baselib/ikey/EcPublicKey;",
+                                        format!("L{}EcPublicKey;", JAVA_PACKAGE),
                                     )
                                     .unwrap();
                                 let jo_public_key = jv_public_key.l().unwrap();
@@ -2031,7 +2028,7 @@ impl rust::store::PreKeyStore for JavaPreKeyStore {
                                     .get_field(
                                         jo,
                                         "privateKey",
-                                        "Lcom/blue/baselib/ikey/EcPrivateKey;",
+                                        format!("L{}EcPrivateKey;", JAVA_PACKAGE),
                                     )
                                     .unwrap();
                                 let jo_private_key = jv_private_key.l().unwrap();
