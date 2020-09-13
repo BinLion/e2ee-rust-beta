@@ -410,14 +410,16 @@ impl<'a> SessionBuilder<'a> {
             });
         }
 
+        let our_identity_key = self.identity_store.get_identity_key_pair();
+        if our_identity_key.is_none() {
+            return Err(MyError::SessionError {
+                code: 2023,
+                name: "process with key bundle".to_string(),
+                msg: "get identity keypair is none".to_string(),
+            });
+        }
+
         let session_record_opt = self.session_store.load_session(&self.address)?;
-        // if session_record_opt.is_none() {
-        //     return Err(MyError::SessionError {
-        //         code: 2023,
-        //         name: "process with key bundle".to_string(),
-        //         msg: "load session is none".to_string(),
-        //     });
-        // }
         let mut session_record = session_record_opt.unwrap_or(SessionRecord::default());
 
         let our_base_key = KeyPair::generate();
@@ -430,7 +432,7 @@ impl<'a> SessionBuilder<'a> {
 
         let mut parameters = AliceParameters::default();
         parameters.our_base_key = our_base_key.clone();
-        parameters.our_identity_key = self.identity_store.get_identity_key_pair();
+        parameters.our_identity_key = our_identity_key.unwrap();
         parameters.their_identity_key = pre_key.identity_key;
         parameters.their_signed_pre_key = pre_key.signed_pre_key;
         parameters.their_ratchet_key = pre_key.signed_pre_key;
@@ -507,10 +509,19 @@ impl<'a> SessionBuilder<'a> {
 
         let our_signed_key = our_signed_key_opt.unwrap().keypair;
 
+        let our_identity_key = self.identity_store.get_identity_key_pair();
+        if our_identity_key.is_none() {
+            return Err(MyError::SessionError {
+                code: 2033,
+                name: "process with message".to_string(),
+                msg: "identity is not trusted".to_string(),
+            });
+        }
+
         let mut parameters = BobParameters::default();
         parameters.their_base_key = message.base_key;
         parameters.their_identity_key = message.identity_key;
-        parameters.our_identity_key = self.identity_store.get_identity_key_pair();
+        parameters.our_identity_key = our_identity_key.unwrap();
         parameters.our_signed_key = our_signed_key.clone();
         parameters.our_ratchet_key = our_signed_key;
 

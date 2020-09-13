@@ -131,7 +131,7 @@ impl SignedPreKeyStore for MemorySignedPreKeyStore {
 }
 
 pub trait IdentityKeyStore {
-    fn get_identity_key_pair(&self) -> IdentityKeyPair;
+    fn get_identity_key_pair(&self) -> Option<IdentityKeyPair>;
     fn get_local_registration_id(&self) -> u32;
     fn save_identity(&mut self, address: Address, identity: PublicKey) -> bool;
     fn get_identity_key(&self, address: &Address) -> Option<PublicKey>;
@@ -151,8 +151,8 @@ pub struct MemoryIdentityKeyStore {
 }
 
 impl IdentityKeyStore for MemoryIdentityKeyStore {
-    fn get_identity_key_pair(&self) -> IdentityKeyPair {
-        self.identity_pair
+    fn get_identity_key_pair(&self) -> Option<IdentityKeyPair> {
+        Some(self.identity_pair)
     }
 
     fn get_local_registration_id(&self) -> u32 {

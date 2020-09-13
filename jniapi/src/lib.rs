@@ -1484,17 +1484,17 @@ use rust::store::Direction;
 struct JavaIdentityStore;
 
 impl rust::store::IdentityKeyStore for JavaIdentityStore {
-    fn get_identity_key_pair(&self) -> IdentityKeyPair {
+    fn get_identity_key_pair(&self) -> Option<IdentityKeyPair> {
         let ptr_jvm = JVM_GLOBAL.lock().unwrap();
         if (*ptr_jvm).is_none() {
             error!("jvm is none");
-            return IdentityKeyPair::default();
+            return None;
         }
 
         let ptr_fn = JNI_CALLBACK.lock().unwrap();
         if (*ptr_fn).is_none() {
             error!("get callback is none");
-            return IdentityKeyPair::default();
+            return None;
         }
 
         let jvm: &JavaVM = (*ptr_jvm).as_ref().unwrap();
@@ -1514,21 +1514,21 @@ impl rust::store::IdentityKeyStore for JavaIdentityStore {
                     let _ = env.exception_clear();
                     // let _ = env.throw_new("java/lang/Exception", "JNI抛出的异常！");
                     trace!("call java getIdentityKeyPair exception");
-                    return IdentityKeyPair::default();
+                    return None;
                 }
                 debug!("call java getIdentityKeyPair: {:?}", call_result);
                 match call_result {
                     Ok(jvalue) => {
                         let ik = jvalue.l().unwrap();
                         if ik.is_null() {
-                            return IdentityKeyPair::default();
+                            return None;
                         }
                         let jv_public_key = env
                             .get_field(ik, "publicKey", format!("L{}EcPublicKey;", JAVA_PACKAGE))
                             .unwrap();
                         let jo_public_key = jv_public_key.l().unwrap();
                         if jo_public_key.is_null() {
-                            return IdentityKeyPair::default();
+                            return None;
                         }
                         let ja_public_key = env
                             .get_field(jo_public_key, "publicKey", "[B")
@@ -1543,7 +1543,7 @@ impl rust::store::IdentityKeyStore for JavaIdentityStore {
                             .unwrap();
                         let jo_private_key = jv_private_key.l().unwrap();
                         if jo_public_key.is_null() {
-                            return IdentityKeyPair::default();
+                            return None;
                         }
                         let ja_private_key =
                             env.get_field(jo_private_key, "privateKey", "[B")
@@ -1557,17 +1557,17 @@ impl rust::store::IdentityKeyStore for JavaIdentityStore {
                             private_key.as_slice().into(),
                             public_key.as_slice().into(),
                         );
-                        return identity_key_pair;
+                        return Some(identity_key_pair);
                     }
                     Err(_e) => {
                         error!("call java getIdentityKeyPair fail");
-                        return IdentityKeyPair::default();
+                        return None;
                     }
                 }
             }
             Err(_e) => {
                 error!("get env fail");
-                return IdentityKeyPair::default();
+                return None;
             }
         }
     }

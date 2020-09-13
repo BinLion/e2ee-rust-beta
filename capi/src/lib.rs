@@ -275,14 +275,16 @@ impl rust::store::SessionStore for CSessionStore {
 pub struct CIdentityStore;
 
 impl rust::store::IdentityKeyStore for CIdentityStore {
-    fn get_identity_key_pair(&self) -> rust::keys::IdentityKeyPair {
-        unsafe {
-            let key_pair = &*c_get_identity_keypair();
-            rust::keys::IdentityKeyPair {
-                public: key_pair.public_key.into(),
-                private: key_pair.private_key.into(),
-            }
+    fn get_identity_key_pair(&self) -> Option<rust::keys::IdentityKeyPair> {
+        let c_key_pair = unsafe { c_get_identity_keypair() };
+        if c_key_pair.is_null() {
+            return None;
         }
+        let key_pair = unsafe { &*c_key_pair };
+        Some(rust::keys::IdentityKeyPair {
+            public: key_pair.public_key.into(),
+            private: key_pair.private_key.into(),
+        })
     }
 
     fn get_local_registration_id(&self) -> u32 {
