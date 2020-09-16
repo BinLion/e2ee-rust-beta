@@ -944,7 +944,7 @@ pub unsafe extern "C" fn session_cipher_decrypt(
                     Err(e) => match e {
                         rust::errors::MyError::SessionError { code, name, msg } => {
                             debug!(
-                                "session_cipher_decrypt fail. code:{}, name:{}, msg: {}",
+                                "session_cipher_decrypt prekey message fail. code:{}, name:{}, msg: {}",
                                 code, name, msg
                             );
                             return code as c_int;
@@ -976,7 +976,19 @@ pub unsafe extern "C" fn session_cipher_decrypt(
             Ok(message) => {
                 let result = session.decrypt(message);
                 match result {
-                    Err(_e) => return -4 as c_int,
+                    Err(e) => match e {
+                        rust::errors::MyError::SessionError { code, name, msg } => {
+                            debug!(
+                                "session_cipher_decrypt message fail. code:{}, name:{}, msg: {}",
+                                code, name, msg
+                            );
+                            return code as c_int;
+                        }
+                        rust::errors::MyError::NoPreKeyException => return -30 as c_int,
+                        rust::errors::MyError::NoSignedKeyException => return -40 as c_int,
+                        _ => return -20 as c_int,
+                    },
+                    // Err(_e) => return -4 as c_int,
                     Ok(text) => {
                         let length = text.len() as u32;
 

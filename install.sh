@@ -29,7 +29,7 @@ cd capi
 cbindgen --cpp-compat -l C -s tag -o e2ee.h
 cargo build --target x86_64-pc-windows-msvc --release
 cargo build --target x86_64-apple-darwin --release 
-cargo build --target aarch64-apple-ios --release
+RUSTFLAGS="-Z embed-bitcode" cargo +ios-arm64 build --target aarch64-apple-ios --release
 cargo build --target x86_64-apple-ios --release
 
 cd ..
