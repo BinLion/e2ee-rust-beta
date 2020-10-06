@@ -101,6 +101,7 @@ impl SignalMessage {
         let (info, their_mac) = self.serialized.split_at(len - 8);
         let our_mac = SignalMessage::get_mac(sender_identity, receiver_identity, mac_key, info);
         if our_mac != their_mac {
+            debug!("verify_mac. mak_key:{:02x?}, info:{:02x?}", mac_key, info);
             return Err(1000);
         }
         Ok(())

@@ -83,9 +83,6 @@ impl rust::store::SenderKeyStore for CSenderKeyStore {
             "store_sender_key. group:{:02x?}",
             group_id.clone().into_bytes_with_nul()
         );
-        //        let group_id = unsafe {
-        //            CStr::from_bytes_with_nul_unchecked(sender.group_id.as_bytes()).as_ptr()
-        //        };
 
         let buf = record.serialize();
         let length = buf.len() as u32;
@@ -124,9 +121,6 @@ impl rust::store::SenderKeyStore for CSenderKeyStore {
             "load_sender_key. group:{:02x?}",
             group_id.clone().into_bytes_with_nul()
         );
-        //        let group_id = unsafe {
-        //            CStr::from_bytes_with_nul_unchecked(sender.group_id.as_bytes())
-        //        };
 
         let key = unsafe {
             debug!("c_load_sender_key1. c_address: {:?}", c_address);
@@ -190,10 +184,7 @@ impl rust::store::SessionStore for CSessionStore {
             );
             let data: &[u8] =
                 slice::from_raw_parts(c_session.data as *const c_uchar, c_session.length as usize);
-            //            let data = CStr::from_ptr((*c_session).data);
-            //            let data = CString::from_raw((*c_session).data);
             debug!("c_load_session after. session_string: {:x?}", data);
-            //            let data = slice::from_raw_parts((*c_session).data, (*c_session).length as usize);
             let record = rust::session_record::SessionRecord::deserialize(data)?;
             Ok(Some(record))
         }
@@ -241,26 +232,6 @@ impl rust::store::SessionStore for CSessionStore {
         }
     }
 
-    // fn contains_session(
-    //     &self,
-    //     address: &'_ rust::address::Address,
-    // ) -> Result<Option<bool>, MyError> {
-    //     debug!("in rust address: {:?}", address);
-    //     let c_address = Address {
-    //         //name: address.name.as_bytes().as_ptr(),
-    //         name: CString::new(address.name.clone())
-    //             .expect("CString::new failed")
-    //             .into_raw(),
-    //         name_len: address.name.len() as c_uint,
-    //         device_id: address.device_id as i32,
-    //     };
-    //     unsafe {
-    //         let has = c_contain_session(&c_address);
-    //         debug!("in rust call c fn: has:{}", has);
-    //         return Ok(Some(has));
-    //     }
-    // }
-
     // no use
     fn delete_session(&mut self, _address: &'_ rust::address::Address) {
         unimplemented!()
@@ -304,10 +275,6 @@ impl rust::store::IdentityKeyStore for CIdentityStore {
                 .into_raw(),
             device_name_len: address.device_name.len() as c_uint,
         };
-        // let data = EcPublicKey {
-        //     data: identity.to_bytes(),
-        // };
-        // debug!("save_identity. key: {:x?}", data);
         unsafe {
             c_save_identity(&c_address, identity.to_bytes());
         }
@@ -355,9 +322,6 @@ impl rust::store::IdentityKeyStore for CIdentityStore {
                 .into_raw(),
             device_name_len: address.device_name.len() as c_uint,
         };
-        // let data = EcPublicKey {
-        //     data: identity_key.to_bytes(),
-        // };
         unsafe { c_is_trusted_identity(&c_address, identity_key.to_bytes()) }
     }
 }
@@ -461,12 +425,6 @@ pub struct EcPrivateKey {
     pub data: [c_uchar; 32],
 }
 
-//#[repr(C)]
-//#[derive(Debug, Default)]
-//pub struct IdentityKeyPair {
-//    pub public_key: [c_uchar; 32],
-//    pub private_key: [c_uchar; 32],
-//}
 type IdentityKeyPair = EcKeyPair;
 
 #[repr(C)]
@@ -514,19 +472,6 @@ pub struct Signature {
 pub struct SharedKey {
     pub data: [c_uchar; 32],
 }
-
-// #[repr(C)]
-// #[derive(Clone)]
-// pub struct PreKeyBundle {
-//     pub registration_id: u32,
-//     pub device_id: u32,
-//     pub pre_key: [c_uchar; 32],
-//     pub pre_key_id: u32,
-//     pub signed_pre_key: [c_uchar; 32],
-//     pub signed_pre_key_id: u32,
-//     pub signature: [c_uchar; 64],
-//     pub identity_key: [c_uchar; 32],
-// }
 
 #[repr(C)]
 #[derive(Debug)]
@@ -810,8 +755,8 @@ pub unsafe extern "C" fn process_with_key_bundle(
                 );
                 return code as c_int;
             }
-            rust::errors::MyError::NoPreKeyException => return -2 as c_int,
-            rust::errors::MyError::NoSignedKeyException => return -3 as c_int,
+            rust::errors::MyError::NoPreKeyException => return 2090 as c_int,
+            rust::errors::MyError::NoSignedKeyException => return 2091 as c_int,
             _ => return -100 as c_int,
         }
     }
@@ -844,12 +789,12 @@ pub unsafe extern "C" fn session_cipher_encrypt(
         &mut identity_store,
         rust_address,
     );
-    let cstr = CStr::from_ptr(plain_text);
-    debug!("session_cipher_encrypt. cstr: {:?}", cstr);
-    //    let text_old = cstr.to_str().expect("CStr from_ptr error");
+
+    if text_len as isize <= 0 {
+        error!("session_cipher_encrypt. text_len: {}", text_len);
+        return -100 as c_int;
+    }
     let text = slice::from_raw_parts(plain_text as *const c_uchar, text_len as usize).to_vec();
-    //    let v = &[0u8, 10];
-    debug!("session_cipher_encrypt. text: {:?}", text);
     let encrypted_ret = session.encrypt(text);
     match encrypted_ret {
         Err(e) => match e {
@@ -860,8 +805,8 @@ pub unsafe extern "C" fn session_cipher_encrypt(
                 );
                 return code as c_int;
             }
-            rust::errors::MyError::NoPreKeyException => -2 as c_int,
-            rust::errors::MyError::NoSignedKeyException => -3 as c_int,
+            rust::errors::MyError::NoPreKeyException => 2090 as c_int,
+            rust::errors::MyError::NoSignedKeyException => 2091 as c_int,
             _ => -1 as c_int,
         },
         Ok(encrypted) => {
@@ -880,25 +825,6 @@ pub unsafe extern "C" fn session_cipher_encrypt(
             0 as c_int
         }
     }
-    // if encrypted_ret.is_err() {
-    //     return -1 as c_int;
-    // }
-    // let encrypted = encrypted_ret.unwrap();
-    // let vec = encrypted.serialize();
-    // debug!("session_cipher_encrypt. encrypted: {:?}", vec);
-    // let length = vec.len() as u32;
-    // let result = CString::from_vec_unchecked(vec);
-    // let message_type = encrypted.get_type() as u32;
-
-    // let out = MessageBuf {
-    //     data: result.into_raw(),
-    //     length,
-    //     message_type,
-    // };
-
-    // let _ = encrypted_message.replace(Box::into_raw(Box::new(out)));
-
-    // 0 as c_int
 }
 
 #[no_mangle]
@@ -949,8 +875,9 @@ pub unsafe extern "C" fn session_cipher_decrypt(
                             );
                             return code as c_int;
                         }
-                        rust::errors::MyError::NoPreKeyException => return -30 as c_int,
-                        rust::errors::MyError::NoSignedKeyException => return -40 as c_int,
+                        rust::errors::MyError::NoPreKeyException => return 2090 as c_int,
+                        rust::errors::MyError::NoSignedKeyException => return 2091 as c_int,
+                        rust::errors::MyError::DuplicateMessageException => return 2070 as c_int,
                         _ => return -20 as c_int,
                     },
                     // Err(_e) => return -2 as c_int,
@@ -984,8 +911,9 @@ pub unsafe extern "C" fn session_cipher_decrypt(
                             );
                             return code as c_int;
                         }
-                        rust::errors::MyError::NoPreKeyException => return -30 as c_int,
-                        rust::errors::MyError::NoSignedKeyException => return -40 as c_int,
+                        rust::errors::MyError::NoPreKeyException => return 2090 as c_int,
+                        rust::errors::MyError::NoSignedKeyException => return 2091 as c_int,
+                        rust::errors::MyError::DuplicateMessageException => return 2070 as c_int,
                         _ => return -20 as c_int,
                     },
                     // Err(_e) => return -4 as c_int,
@@ -1192,12 +1120,6 @@ pub extern "C" fn group_process_distribution_message(
     let parts = unsafe { slice::from_raw_parts(group_id as *const c_uchar, group_len as usize) };
     let group = unsafe { String::from_utf8_unchecked(parts.to_vec()) };
 
-    //    let name1 = CStr::from_ptr((*address).name).to_bytes().to_vec();
-    //    let name = String::from_utf8_unchecked(name1);
-    //    let rust_address = rust::address::Address::new(name, (*address).device_id as u64);
-    //    let group1 = CStr::from_ptr(group_id).to_bytes().to_vec();
-    //    let group = String::from_utf8_unchecked(group1);
-
     let sender = rust::address::SenderKeyName {
         group_id: group,
         sender: rust_address,
@@ -1251,11 +1173,6 @@ pub extern "C" fn group_cipher_encode(
         error!("address name is null");
         return -3 as c_int;
     }
-    //    let name1 = CStr::from_ptr((*address).name).to_bytes().to_vec();
-    //    let name = String::from_utf8_unchecked(name1);
-    //    let rust_address = rust::address::Address::new(name, (*address).device_id as u64);
-    //    let group1 = CStr::from_ptr(group_id).to_bytes().to_vec();
-    //    let group = String::from_utf8_unchecked(group1);
     let name1 = unsafe { CStr::from_ptr((*address).name).to_bytes().to_vec() };
     let name = unsafe { String::from_utf8_unchecked(name1) };
     //    let name = unsafe {String::from_raw_parts(c_address.name as *mut c_uchar, c_address.name_len as usize, c_address.name_len as usize)};
@@ -1265,9 +1182,6 @@ pub extern "C" fn group_cipher_encode(
     //    let group= unsafe {String::from_raw_parts(group_id as *mut c_uchar,group_len as usize, group_len as usize)};
     let parts = unsafe { slice::from_raw_parts(group_id as *const c_uchar, group_len as usize) };
     let group = unsafe { String::from_utf8_unchecked(parts.to_vec()) };
-    //    let name = unsafe {String::from_raw_parts(c_address.name as *mut c_uchar, c_address.name_len as usize, c_address.name_len as usize)};
-    //    let rust_address = rust::address::Address::new(name, c_address.device_id as u64);
-    //    let group= unsafe {String::from_raw_parts(group_id as *mut c_uchar,group_len as usize, group_len as usize)};
 
     let sender = rust::address::SenderKeyName {
         group_id: group,
@@ -1333,13 +1247,6 @@ pub extern "C" fn group_cipher_decode(
     //    let group= unsafe {String::from_raw_parts(group_id as *mut c_uchar,group_len as usize, group_len as usize)};
     let parts = unsafe { slice::from_raw_parts(group_id as *const c_uchar, group_len as usize) };
     let group = unsafe { String::from_utf8_unchecked(parts.to_vec()) };
-    //    let name = unsafe {String::from_raw_parts(c_address.name as *mut c_uchar, c_address.name_len as usize, c_address.name_len as usize)};
-
-    //    let name1 = CStr::from_ptr((*address).name).to_bytes().to_vec();
-    //    let name = String::from_utf8_unchecked(name1);
-    //    let group1 = CStr::from_ptr(group_id).to_bytes().to_vec();
-    //    let group = String::from_utf8_unchecked(group1);
-    //    let group= unsafe {String::from_raw_parts(group_id as *mut c_uchar,group_len as usize, group_len as usize)};
 
     let sender = rust::address::SenderKeyName {
         group_id: group,

@@ -116,43 +116,6 @@ impl<'a> GroupSessionBuilder<'a> {
         ))
     }
 
-    //    pub fn create(&mut self, sender: &SenderKeyName) -> Result<SenderKeyDistributionMessage> {
-    //        let option = self.sender_key_store.load_sender_key(sender);
-    //        println!("crate SenderKeyDistributionMessage. record:{:02x?}", option);
-    //        match option {
-    //            None => {
-    //                let mut rng = OsRng::default();
-    //                let id = rng.next_u32();
-    //                let mut sender_key = [0u8;32];
-    //                rng.fill_bytes(&mut sender_key);
-    //                let signing_key = KeyPair::new(&mut OsRng);
-    //                let mut record = SenderKeyRecord::default();
-    //                record.set_sender_key_state(id, 0, sender_key.to_vec(), signing_key);
-    //                self.sender_key_store.store_sender_key(sender.clone(), record.clone());
-    //                let state_opt = record.get_sender_key_state();
-    //                if state_opt.is_none() {
-    //                    println!("no state in sender key record");
-    //                    return Err(MyError::SessionError("no state in sender key record"));
-    //                }
-    //                let state = state_opt.unwrap();
-    //
-    //                println!("crate SenderKeyDistributionMessage. state:{:02x?}", state);
-    //                Ok(SenderKeyDistributionMessage::new(state.get_key_id(), state.get_sender_chain_key().iteration,
-    //                                                     state.get_sender_chain_key().key, state.get_signing_key_public()))
-    //            },
-    //            Some(record) => {
-    //                let state_opt = record.get_sender_key_state();
-    //                if state_opt.is_none() {
-    //                    println!("no state in sender key record");
-    //                    return Err(MyError::SessionError("no state in sender key record"));
-    //                }
-    //                let state = state_opt.unwrap();
-    //                Ok(SenderKeyDistributionMessage::new(state.get_key_id(), state.get_sender_chain_key().iteration,
-    //                                                     state.get_sender_chain_key().key, state.get_signing_key_public()))
-    //            }
-    //        }
-    //    }
-
     pub fn encrypt(&mut self, padded_message: Vec<u8>) -> Result<Vec<u8>> {
         let mut option = self.sender_key_store.load_sender_key(&self.sender);
         match option.borrow_mut() {
@@ -285,11 +248,6 @@ impl<'a> GroupSessionBuilder<'a> {
                 return Ok(message_keys);
             } else {
                 debug!("received message with old counter");
-                // return Err(MyError::SessionError {
-                //     code: 2010,
-                //     name: "DuplicateMessageException".to_string(),
-                //     msg: "receive message with old counter".to_string(),
-                // });
                 return Err(MyError::DuplicateMessageException);
             }
         }
@@ -319,13 +277,6 @@ impl<'a> GroupSessionBuilder<'a> {
         return Ok(message_keys);
     }
 }
-//pub struct SessionBuilder {
-//    pub session_store: Box<dyn SessionStore>,
-//    pub pre_key_store: Box<dyn PreKeyStore>,
-//    pub signed_pre_key_store: Box<dyn SignedPreKeyStore>,
-//    pub identity_store: Box<dyn IdentityKeyStore>,
-//    pub address: Address,
-//}
 
 pub struct SessionBuilder<'a> {
     pub session_store: &'a mut dyn SessionStore,
@@ -336,16 +287,6 @@ pub struct SessionBuilder<'a> {
 }
 
 impl<'a> SessionBuilder<'a> {
-    //    pub fn new(session_store: Box<dyn SessionStore>,
-    //               pre_key_store: Box<dyn PreKeyStore>,
-    //               signed_pre_key_store: Box<dyn SignedPreKeyStore>,
-    //               identity_store: Box<dyn IdentityKeyStore>,
-    //               address: Address) -> Self {
-    //        Self {
-    //            session_store, pre_key_store, signed_pre_key_store, identity_store, address
-    //        }
-    //    }
-
     pub fn new(
         session_store: &'a mut dyn SessionStore,
         pre_key_store: &'a mut dyn PreKeyStore,
@@ -361,16 +302,6 @@ impl<'a> SessionBuilder<'a> {
             address,
         }
     }
-
-    //    pub fn new2(store: Box<dyn Store>, address: Address) -> Self {
-    //        Self {
-    //            session_store: store as Box<dyn SessionStore>,
-    //            pre_key_store: store as Box<dyn PreKeyStore>,
-    //            signed_pre_key_store: store as Box<dyn SignedPreKeyStore>,
-    //            identity_store: store as Box<dyn IdentityKeyStore>,
-    //            address
-    //        }
-    //    }
 
     pub fn process_with_key_bundle(&mut self, pre_key: PreKeyBundle) -> Result<()> {
         debug!("process_with_key_bundle. key_bundle:{:?}", pre_key);
@@ -500,11 +431,6 @@ impl<'a> SessionBuilder<'a> {
         if our_signed_key_opt.is_none() {
             trace!("process_with_message. load signed pre key is none");
             return Err(MyError::NoSignedKeyException);
-            // return Err(MyError::SessionError {
-            //     code: 2031,
-            //     name: "process with message".to_string(),
-            //     msg: "load signed pre key is none".to_string(),
-            // });
         }
 
         let our_signed_key = our_signed_key_opt.unwrap().keypair;
@@ -529,11 +455,6 @@ impl<'a> SessionBuilder<'a> {
             let pre_key_opt = self.pre_key_store.load_pre_key(id);
             if pre_key_opt.is_none() {
                 trace!("process_with_message. load pre key is none");
-                // return Err(MyError::SessionError {
-                //     code: 2032,
-                //     name: "process with message".to_string(),
-                //     msg: "load pre key is none".to_string(),
-                // });
                 return Err(MyError::NoPreKeyException);
             }
             parameters.our_one_time_key = Some(pre_key_opt.expect("process_with_message1").keypair);
@@ -648,13 +569,6 @@ impl<'a> SessionBuilder<'a> {
     ) -> Result<Vec<u8>> {
         trace!("in rust pre_key_message_decrypt. start load session");
         let session_record_opt = self.session_store.load_session(&self.address)?;
-        // if session_record_opt.is_none() {
-        //     return Err(MyError::SessionError {
-        //         code: 2050,
-        //         name: "pre key message decrypt".to_string(),
-        //         msg: "load session is none".to_string(),
-        //     });
-        // }
         let mut session_record = session_record_opt.unwrap_or(SessionRecord::default());
 
         trace!(
@@ -663,13 +577,6 @@ impl<'a> SessionBuilder<'a> {
         );
         let preid = self.process_with_message(&mut session_record, &pre_key_message)?;
         trace!("in rust pre_key_message_decrypt. preid: {:?}", preid);
-        // if preid.is_err() {
-        //     return Err(MyError::SessionError {
-        //         code: 2051,
-        //         name: "pre key message decrypt".to_string(),
-        //         msg: "process pre key message error".to_string(),
-        //     });
-        // }
 
         let encrypted = pre_key_message.message;
 
@@ -713,109 +620,6 @@ impl<'a> SessionBuilder<'a> {
             }
             return Ok(plain_text_ret.unwrap().to_vec());
         }
-        // if !session_state.has_sender_chain() {
-        //     trace!("pre_key_message_decrypt. no sender_chain");
-        //     return Err(MyError::SessionError {
-        //         code: 2052,
-        //         name: "pre key message decrypt".to_string(),
-        //         msg: "no sender chain".to_string(),
-        //     });
-        // }
-
-        // let their_ephemeral = encrypted.sender_ratchet_key;
-        // let counter = encrypted.counter;
-        // // let mut chain_key = ChainKey::default();
-        // let mut chain_key;
-        // if let Some(_receiver_chain) = session_state.get_receiver_chain(&their_ephemeral) {
-        //     chain_key = session_state
-        //         .get_receiver_chain_key(&their_ephemeral)
-        //         .expect("decrypt");
-        //     trace!(
-        //         "pre_key_message_decrypt. chain_key:{:?}, their_ephemeral:{:?}",
-        //         chain_key,
-        //         their_ephemeral
-        //     );
-        // } else {
-        //     let root_key = session_state.get_root_key();
-        //     let our_ephemeral_opt = session_state.get_sender_ratchet_key_pair();
-        //     if our_ephemeral_opt.is_none() {
-        //         return Err(MyError::SessionError {
-        //             code: 2053,
-        //             name: "pre key message decrypt".to_string(),
-        //             msg: "session state get_sender_ratchet_key_pair is none".to_string(),
-        //         });
-        //     }
-        //     let our_ephemeral = our_ephemeral_opt.unwrap();
-        //     let (receiver_root, receiver_chain) =
-        //         root_key.create_chain(&their_ephemeral, &our_ephemeral);
-        //     let our_new_key = KeyPair::generate();
-        //     let (sender_root, sender_chain) =
-        //         receiver_root.create_chain(&their_ephemeral, &our_new_key);
-
-        //     session_state.set_root_key(sender_root);
-        //     session_state.add_receiver_chain(their_ephemeral.clone(), receiver_chain.clone());
-        //     session_state.set_previous_counter(
-        //         std::cmp::max(
-        //             session_state
-        //                 .get_sender_chain_key()
-        //                 .expect("decrypt2")
-        //                 .index,
-        //             1,
-        //         ) - 1,
-        //     );
-        //     session_state.set_sender_chain(our_new_key.clone(), sender_chain);
-
-        //     chain_key = receiver_chain;
-        //     trace!(
-        //         "pre_key_message_decrypt. chain_key2:{:?}, their_ephemeral:{:?}",
-        //         chain_key,
-        //         their_ephemeral
-        //     );
-        // }
-
-        // let message_keys = Self::get_message_keys(
-        //     &mut session_state,
-        //     &their_ephemeral,
-        //     &mut chain_key,
-        //     counter,
-        // )?;
-        // trace!("decrypt message keys: {:?}", message_keys);
-
-        // if session_state.get_remote_identity_key().is_none() {
-        //     return Err(MyError::SessionError {
-        //         code: 2055,
-        //         name: "pre key message decrypt".to_string(),
-        //         msg: "remote identity key is none".to_string(),
-        //     });
-        // }
-
-        // if session_state.get_local_identity_key().is_none() {
-        //     return Err(MyError::SessionError {
-        //         code: 2056,
-        //         name: "pre key message decrypt".to_string(),
-        //         msg: "local identity key is none".to_string(),
-        //     });
-        // }
-
-        // let verify_result = encrypted.verify_mac(
-        //     &session_state.get_remote_identity_key().expect("decrypt3"),
-        //     &session_state.get_local_identity_key().expect("decrypt4"),
-        //     &message_keys.mac_key,
-        // );
-        // trace!("pre_key_message_decrypt. verify_result:{:?}", verify_result);
-        // if verify_result.is_err() {
-        //     return Err(MyError::SessionError {
-        //         code: 2054,
-        //         name: "pre key message decrypt".to_string(),
-        //         msg: "verify mac error".to_string(),
-        //     });
-        // }
-
-        // let mut body = encrypted.ciphertext;
-        // let plain_text =
-        //     aes256_cbc_pkcs7_decrypt(&message_keys.cipher_key, &message_keys.iv, &mut body)?;
-
-        // session_state.clear_unknown_pre_key_message();
     }
 
     fn decrypt_with_state(
@@ -928,25 +732,6 @@ impl<'a> SessionBuilder<'a> {
     }
 
     pub fn decrypt(&mut self, encrypted: SignalMessage) -> Result<Vec<u8>> {
-        // let has_opt = self.session_store.contains_session(&self.address)?;
-        // if has_opt.is_none() {
-        //     trace!("in rust decrypt. containSession fail");
-        //     return Err(MyError::SessionError {
-        //         code: 2060,
-        //         name: "message decrypt".to_string(),
-        //         msg: "call containSession fail".to_string(),
-        //     });
-        // }
-
-        // if !has_opt.unwrap() {
-        //     trace!("in rust decrypt. no session");
-        //     return Err(MyError::SessionError {
-        //         code: 2061,
-        //         name: "message decrypt".to_string(),
-        //         msg: "no session".to_string(),
-        //     });
-        // }
-
         trace!("in rust decrypt. start load session");
         let session_record_opt = self.session_store.load_session(&self.address)?;
         if session_record_opt.is_none() {
@@ -1002,112 +787,6 @@ impl<'a> SessionBuilder<'a> {
 
             Ok(plain_text_ret.unwrap().to_vec())
         }
-        // if !session_state.has_sender_chain() {
-        //     trace!("in rust decrypt. no sender chain");
-        //     return Err(MyError::SessionError {
-        //         code: 2064,
-        //         name: "message decrypt".to_string(),
-        //         msg: "no sender chain".to_string(),
-        //     });
-        // }
-
-        // let their_ephemeral = encrypted.sender_ratchet_key;
-        // let counter = encrypted.counter;
-        // // let mut chain_key = ChainKey::default();
-        // let mut chain_key;
-        // if let Some(_receiver_chain) = session_state.get_receiver_chain(&their_ephemeral) {
-        //     trace!("in rust decrypt. no sender chain");
-        //     chain_key = session_state
-        //         .get_receiver_chain_key(&their_ephemeral)
-        //         .expect("decrypt");
-        // } else {
-        //     println!("decrypt14");
-        //     let root_key = session_state.get_root_key();
-        //     let our_ephemeral_opt = session_state.get_sender_ratchet_key_pair();
-        //     if our_ephemeral_opt.is_none() {
-        //         return Err(MyError::SessionError {
-        //             code: 2065,
-        //             name: "message decrypt".to_string(),
-        //             msg: "session state get_sender_ratchet_key_pair is none".to_string(),
-        //         });
-        //     }
-        //     let our_ephemeral = our_ephemeral_opt.unwrap();
-        //     let (receiver_root, receiver_chain) =
-        //         root_key.create_chain(&their_ephemeral, &our_ephemeral);
-        //     let our_new_key = KeyPair::generate();
-        //     let (sender_root, sender_chain) =
-        //         receiver_root.create_chain(&their_ephemeral, &our_new_key);
-
-        //     session_state.set_root_key(sender_root);
-        //     session_state.add_receiver_chain(their_ephemeral.clone(), receiver_chain.clone());
-        //     session_state.set_previous_counter(
-        //         std::cmp::max(
-        //             session_state
-        //                 .get_sender_chain_key()
-        //                 .expect("decrypt2")
-        //                 .index,
-        //             1,
-        //         ) - 1,
-        //     );
-        //     session_state.set_sender_chain(our_new_key.clone(), sender_chain);
-
-        //     chain_key = receiver_chain;
-        // }
-
-        // trace!("decrypt get message keys before: {:02x?}, their_ephemeral:{:02x?}, chain_key:{:02x?}, counter:{}", session_state, their_ephemeral, chain_key, counter);
-        // let message_keys = Self::get_message_keys(
-        //     &mut session_state,
-        //     &their_ephemeral,
-        //     &mut chain_key,
-        //     counter,
-        // )?;
-        // trace!("decrypt message keys: {:?}", message_keys);
-
-        // if session_state.get_remote_identity_key().is_none() {
-        //     return Err(MyError::SessionError {
-        //         code: 2066,
-        //         name: "message decrypt".to_string(),
-        //         msg: "remote identity key is none".to_string(),
-        //     });
-        // }
-
-        // if session_state.get_local_identity_key().is_none() {
-        //     return Err(MyError::SessionError {
-        //         code: 2066,
-        //         name: "message decrypt".to_string(),
-        //         msg: "local identity key is none".to_string(),
-        //     });
-        // }
-
-        // let verify_result = encrypted.verify_mac(
-        //     &session_state.get_remote_identity_key().expect("decrypt3"),
-        //     &session_state.get_local_identity_key().expect("decrypt4"),
-        //     &message_keys.mac_key,
-        // );
-        // if verify_result.is_err() {
-        //     return Err(MyError::SessionError {
-        //         code: 2065,
-        //         name: "message decrypt".to_string(),
-        //         msg: "verify mac error".to_string(),
-        //     });
-        // }
-
-        // let mut body = encrypted.ciphertext;
-        // let plain_text =
-        //     aes256_cbc_pkcs7_decrypt(&message_keys.cipher_key, &message_keys.iv, &mut body)?;
-
-        // session_state.clear_unknown_pre_key_message();
-
-        // self.identity_store.save_identity(
-        //     self.address.clone(),
-        //     session_state.get_remote_identity_key().unwrap(),
-        // );
-        // session_record.session_state = session_state;
-        // let _ = self
-        //     .session_store
-        //     .store_session(self.address.clone(), session_record)?;
-
-        // Ok(plain_text.to_vec())
     }
 
     fn get_message_keys(
@@ -1116,7 +795,6 @@ impl<'a> SessionBuilder<'a> {
         chain_key: &mut ChainKey,
         counter: u32,
     ) -> Result<MessageKeys> {
-        // let mut message_keys = MessageKeys::default();
         let mut message_keys;
         if chain_key.index > counter {
             if session_state.has_message_keys(&their_ephemeral, counter) {
@@ -1130,11 +808,6 @@ impl<'a> SessionBuilder<'a> {
                     "Received message with old counter. index:{}, counter:{}",
                     chain_key.index, counter
                 );
-                // return Err(MyError::SessionError {
-                //     code: 2070,
-                //     name: "DuplicateMessageException".to_string(),
-                //     msg: "receive message with old counter".to_string(),
-                // });
                 return Err(MyError::DuplicateMessageException);
             }
         }

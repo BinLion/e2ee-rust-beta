@@ -11,7 +11,12 @@ cargo build --target aarch64-linux-android --release
 cargo build --target armv7-linux-androideabi --release
 cargo build --target i686-linux-android --release
 
-rm -rf $JNI_LIBS
+rm -rf e2eesdk/*
+#rm -rf $JNI_LIBS
+mkdir $cur_dir/e2eesdk/android
+mkdir $cur_dir/e2eesdk/ios
+mkdir $cur_dir/e2eesdk/mac
+mkdir $cur_dir/e2eesdk/windows
 mkdir $JNI_LIBS
 
 pwd
@@ -40,4 +45,5 @@ cp target/x86_64-pc-windows-msvc/release/e2ee.lib $cur_dir/e2eesdk/ios/e2ee.lib
 cp target/x86_64-apple-darwin/release/libe2ee.a $cur_dir/e2eesdk/mac/libe2ee.a
 lipo -create target/aarch64-apple-ios/release/libe2ee.a target/x86_64-apple-ios/release/libe2ee.a -output $cur_dir/e2eesdk/ios/libe2ee.a
 
-zip -r e2eesdk_all.zip e2eesdk
+NOW=$(date +"%Y%m%d%H")
+zip -r e2eesdk_all_$NOW.zip e2eesdk
