@@ -5,7 +5,7 @@ use curve_crypto::{KeyPair, PublicKey};
 use prost::Message;
 use std::io::Cursor;
 
-const ARCHIVED_STATES_MAX_LENGTH: usize = 40;
+const ARCHIVED_STATES_MAX_LENGTH: usize = 10;
 
 #[derive(Debug, Clone, Default)]
 pub struct SenderKeyRecord {
@@ -182,6 +182,20 @@ impl SessionRecord {
 
         for state in &self.previous_states {
             if state.get_alice_base_key() == alice_base_key {
+                return true;
+            }
+        }
+
+        false
+    }
+
+    pub fn has_session_state_by_registration_id(&self, registration_id: u32) -> bool {
+        if self.session_state.get_remote_registration_id() == registration_id {
+            return true;
+        }
+
+        for state in &self.previous_states {
+            if state.get_remote_registration_id() == registration_id {
                 return true;
             }
         }

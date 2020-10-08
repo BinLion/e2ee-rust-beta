@@ -420,7 +420,12 @@ impl<'a> SessionBuilder<'a> {
         }
 
         if session_record.has_session_state(message.base_key.as_bytes()) {
-            trace!("process_with_message2");
+            trace!("process_with_message. base key in message is in session state already");
+            return Ok(0);
+        }
+
+        if session_record.has_session_state_by_registration_id(message.registration_id) {
+            trace!("process_with_message. registration id in message is in session state already");
             return Ok(0);
         }
 
@@ -522,6 +527,7 @@ impl<'a> SessionBuilder<'a> {
                     cipher_message.to_vec(),
                     session_state.get_local_identity_key().unwrap(),
                     session_state.get_remote_identity_key().unwrap(),
+                    session_state.get_alice_base_key(),
                 );
 
                 trace!("e2ee-encrypt. signal_message: {:?}", signal_message);
@@ -747,7 +753,16 @@ impl<'a> SessionBuilder<'a> {
             return Err(MyError::SessionError {
                 code: 2063,
                 name: "message decrypt".to_string(),
-                msg: "session recored is empty".to_string(),
+                msg: "session record is empty".to_string(),
+            });
+        }
+
+        if !session_record.has_session_state(&encrypted.alice_base_key) {
+            trace!("in rust decrypt. no session state found");
+            return Err(MyError::SessionError {
+                code: 2064,
+                name: "message decrypt".to_string(),
+                msg: "no session state found".to_string(),
             });
         }
 

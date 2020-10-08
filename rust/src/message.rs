@@ -18,6 +18,7 @@ pub struct SignalMessage {
     pub previous_counter: u32,
     pub ciphertext: Vec<u8>,
     pub serialized: Vec<u8>,
+    pub alice_base_key: Vec<u8>,
 }
 
 impl SignalMessage {
@@ -29,6 +30,7 @@ impl SignalMessage {
         ciphertext: Vec<u8>,
         sender_identity_key: PublicKey,
         receiver_identity_key: PublicKey,
+        base_key: &[u8],
     ) -> Self {
         let mut message = crate::message_proto::Message::default();
         let mut ratchet_key = sender_key.as_bytes().to_vec();
@@ -37,6 +39,7 @@ impl SignalMessage {
         message.counter = Some(counter);
         message.previous_counter = Some(previous_counter);
         message.ciphertext = Some(ciphertext.clone());
+        message.alice_base_key = Some(base_key.to_vec());
 
         let mut buf = Vec::new();
         buf.reserve(message.encoded_len());
@@ -71,6 +74,7 @@ impl SignalMessage {
             previous_counter,
             ciphertext,
             serialized,
+            alice_base_key: base_key.to_vec(),
         }
     }
 
@@ -126,6 +130,7 @@ impl SignalMessage {
                     counter: message.counter.expect("message proto"),
                     previous_counter: message.previous_counter.expect("message proto"),
                     ciphertext: message.ciphertext.expect("message proto"),
+                    alice_base_key: message.alice_base_key.expect("message proto. no alice base key"),
                 };
 
                 Ok(sm)
