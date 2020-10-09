@@ -353,6 +353,15 @@ impl<'a> SessionBuilder<'a> {
         let session_record_opt = self.session_store.load_session(&self.address)?;
         let mut session_record = session_record_opt.unwrap_or(SessionRecord::default());
 
+        if session_record.has_session_state_by_registration_id(pre_key.registration_id) {
+            return Err(MyError::SessionError {
+                code: 2024,
+                name: "process with key bundle".to_string(),
+                msg: "process with key bundle. there is session state of registration id"
+                    .to_string(),
+            });
+        }
+
         let our_base_key = KeyPair::generate();
         let mut their_one_time_key: Option<PublicKey> = None;
         let mut their_one_time_key_id: Option<u32> = None;
