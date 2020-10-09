@@ -401,9 +401,7 @@ impl SessionState {
     }
 
     pub fn get_remote_registration_id(&self) -> u32 {
-        self.session_structure
-            .remote_registration_id
-            .expect("prost decode23")
+        self.session_structure.remote_registration_id.unwrap_or(0)
     }
 
     pub fn set_local_registration_id(&mut self, id: u32) {
@@ -411,9 +409,7 @@ impl SessionState {
     }
 
     pub fn get_local_registration_id(&self) -> u32 {
-        self.session_structure
-            .local_registration_id
-            .expect("prost decode24")
+        self.session_structure.local_registration_id.unwrap_or(0)
     }
 
     pub fn serialize(&self) -> Vec<u8> {
