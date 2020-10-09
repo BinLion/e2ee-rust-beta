@@ -757,7 +757,9 @@ impl<'a> SessionBuilder<'a> {
             });
         }
 
-        if !session_record.has_session_state(&encrypted.alice_base_key) {
+        if encrypted.alice_base_key.is_some()
+            && !session_record.has_session_state(&encrypted.alice_base_key.as_ref().unwrap())
+        {
             trace!("in rust decrypt. no session state found");
             return Err(MyError::SessionError {
                 code: 2064,

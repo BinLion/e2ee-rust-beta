@@ -18,7 +18,7 @@ pub struct SignalMessage {
     pub previous_counter: u32,
     pub ciphertext: Vec<u8>,
     pub serialized: Vec<u8>,
-    pub alice_base_key: Vec<u8>,
+    pub alice_base_key: Option<Vec<u8>>,
 }
 
 impl SignalMessage {
@@ -74,7 +74,7 @@ impl SignalMessage {
             previous_counter,
             ciphertext,
             serialized,
-            alice_base_key: base_key.to_vec(),
+            alice_base_key: Some(base_key.to_vec()),
         }
     }
 
@@ -130,7 +130,7 @@ impl SignalMessage {
                     counter: message.counter.expect("message proto"),
                     previous_counter: message.previous_counter.expect("message proto"),
                     ciphertext: message.ciphertext.expect("message proto"),
-                    alice_base_key: message.alice_base_key.expect("message proto. no alice base key"),
+                    alice_base_key: message.alice_base_key,
                 };
 
                 Ok(sm)
@@ -436,6 +436,7 @@ mod test {
             vec![11, 22],
             sender_identity.clone().public,
             receiver_identity.clone().public,
+            &vec![1],
         );
 
         let result =
