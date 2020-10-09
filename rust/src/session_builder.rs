@@ -354,12 +354,17 @@ impl<'a> SessionBuilder<'a> {
         let mut session_record = session_record_opt.unwrap_or(SessionRecord::default());
 
         if session_record.has_session_state_by_registration_id(pre_key.registration_id) {
-            return Err(MyError::SessionError {
-                code: 2024,
-                name: "process with key bundle".to_string(),
-                msg: "process with key bundle. there is session state of registration id"
-                    .to_string(),
-            });
+            // return Err(MyError::SessionError {
+            //     code: 2024,
+            //     name: "process with key bundle".to_string(),
+            //     msg: "process with key bundle. there is session state of registration id"
+            //         .to_string(),
+            // });
+            trace!(
+                "process with key bundle. there is session state of registration id: {}",
+                pre_key.registration_id
+            );
+            return Ok(());
         }
 
         let our_base_key = KeyPair::generate();
