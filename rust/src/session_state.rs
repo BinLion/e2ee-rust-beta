@@ -27,6 +27,10 @@ impl SessionState {
         }
     }
 
+    pub fn check_alice_base_key(&self, key: &Option<Vec<u8>>) -> bool {
+        key.is_some() && &self.session_structure.alice_base_key == key
+    }
+
     pub fn set_alice_base_key(&mut self, alice_base_key: Vec<u8>) {
         self.session_structure.alice_base_key = Some(alice_base_key);
     }

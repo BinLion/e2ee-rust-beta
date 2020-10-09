@@ -790,6 +790,10 @@ impl<'a> SessionBuilder<'a> {
             for (idx, state) in session_record.previous_states.clone().iter().enumerate() {
                 trace!("decrypt. index:{}, state:{:?}", idx, state);
                 session_state = state.clone();
+                if !session_state.check_alice_base_key(&encrypted.alice_base_key) {
+                    trace!("decrypt. skip this session state, index:{}", idx);
+                    continue;
+                }
                 let ret = self.decrypt_with_state(&mut session_state, encrypted.clone());
                 if ret.is_ok() {
                     self.identity_store.save_identity(
