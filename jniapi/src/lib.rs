@@ -3,6 +3,7 @@
 #[macro_use]
 extern crate log;
 extern crate android_logger;
+extern crate simplelog;
 
 use jni::JNIEnv;
 //use jni::Result;
@@ -14,6 +15,8 @@ use lazy_static::lazy_static;
 use log::Level;
 use rand_core::OsRng;
 use rust::errors::MyError;
+use simplelog::*;
+use std::fs::File;
 use std::os::raw::c_void;
 use std::str::FromStr;
 use std::sync::Mutex;
@@ -206,6 +209,32 @@ pub fn initLogger(env: JNIEnv, _: JClass, level: JString) {
             .with_min_level(Level::from_str(level_string.as_str()).unwrap_or(Level::Error))
             .with_tag("e2eesdk"),
     );
+}
+
+pub fn initLoggerV2(env: JNIEnv, _: JClass, level: JString, path: JString) -> jboolean {
+    let mut level_string: String = "error".to_string();
+    let l = env.get_string(level);
+    if l.is_ok() {
+        level_string = l.unwrap().into();
+    }
+    let file: String = env.get_string(path).unwrap().into();
+    let file = File::create(file);
+    if file.is_err() {
+        return 0;
+    }
+    let file = file.unwrap();
+    // debug!("initLoggerV2: {:?}", file);
+    let config = ConfigBuilder::new()
+        .set_time_format_str("%F %T%z")
+        .set_time_to_local(true)
+        .build();
+    let l = LevelFilter::from_str(&level_string).unwrap_or(LevelFilter::Trace);
+
+    let _result = CombinedLogger::init(vec![
+        // TermLogger::new(l, config.clone(), TerminalMode::Mixed),
+        WriteLogger::new(l, config, file),
+    ]);
+    return 1;
 }
 
 pub unsafe fn newPreKey(env: JNIEnv, _: JClass, key_id: jint) -> jobject {
@@ -1052,6 +1081,7 @@ unsafe fn JNI_OnLoad(jvm: JavaVM, _reserved: *mut c_void) -> jint {
             )
         ),
         jni_method!(initLogger, "(Ljava/lang/String;)V"),
+        jni_method!(initLoggerV2, "(Ljava/lang/String;Ljava/lang/String;)Z"),
         jni_method!(newPreKey, format!("(I)L{}PreKeyRecord;", JAVA_PACKAGE)),
         jni_method!(newPreKeys, "(II)Ljava/util/List;"),
         jni_method!(curveAgreement, "([B[B)[B"),
